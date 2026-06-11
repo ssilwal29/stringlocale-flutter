@@ -168,6 +168,16 @@ Future<void> main() async {
 export OPENROUTER_API_KEY=sk-or-...
 ```
 
+For Flutter runtime translation, pass the key into the running app with
+`--dart-define`:
+
+```bash
+flutter run --dart-define=OPENROUTER_API_KEY=$OPENROUTER_API_KEY
+```
+
+If the app is already running, stop it and run `flutter run` again. Hot reload
+or hot restart will not apply a new `--dart-define` value.
+
 You need this key for:
 
 - compile-time locale generation
@@ -687,10 +697,10 @@ To run the Flutter demo:
 
 ```bash
 cd stringlocale_demo
-flutter run -d macos
+flutter run -d macos --dart-define=OPENROUTER_API_KEY=$OPENROUTER_API_KEY
 ```
 
-The current demo app in `stringlocale_demo/lib/main.dart` is intentionally self-contained and embeds a small amount of compiled locale JSON inline for Nepali and Japanese so it can render without wiring an asset loader first.
+The demo includes a runtime translation section where you can type a visitor region and see the `ParamKind.translatable` value translated for the selected non-English locale. English passes the value through because the source value is already English.
 
 ## Translation dashboard
 
@@ -718,6 +728,13 @@ Set the environment variable before compile or runtime calls that need LLM acces
 
 ```bash
 export OPENROUTER_API_KEY=sk-or-...
+```
+
+For Flutter apps, especially when launching from tooling that may not pass shell
+environment variables through to the app process, use `--dart-define`:
+
+```bash
+flutter run -d macos --dart-define=OPENROUTER_API_KEY=$OPENROUTER_API_KEY
 ```
 
 ### Compile keeps skipping my key

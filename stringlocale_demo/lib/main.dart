@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:stringlocale/stringlocale_flutter.dart';
 
 import 'texts.dart';
@@ -20,6 +22,7 @@ const _demoLocales = <_DemoLocale>[
 ];
 
 const _siteOwnerName = 'Jane Doe';
+const _openRouterApiKey = String.fromEnvironment('OPENROUTER_API_KEY');
 
 const _statusByLocale = <String, String>{
   'en': 'approved',
@@ -66,6 +69,20 @@ const _websiteStatusCode =
     "  {'status': ParamKind.literal},\n"
     ");";
 
+const _websiteAudienceCode =
+    "final websiteAudience = dynamicText(\n"
+    "  'website_audience',\n"
+    "  '{owner}\\'s website supports visitors in {region}',\n"
+    "  {\n"
+    "    'owner': ParamKind.literal,\n"
+    "    'region': const Param(\n"
+    "      'region',\n"
+    "      kind: ParamKind.translatable,\n"
+    "      context: 'website visitor region',\n"
+    "    ),\n"
+    "  },\n"
+    ");";
+
 const _launchDateCode =
     "final launchDate = dynamicText(\n"
     "  'launch_date',\n"
@@ -75,12 +92,13 @@ const _launchDateCode =
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final localeData = await _loadLocaleData();
 
   final renderer = Renderer(
-    localeData: await _loadLocaleData(),
-    // apiKey is read from OPENROUTER_API_KEY for translatable/userAdapted params
+    localeData: localeData,
+    apiKey: _openRouterApiKey.isEmpty ? null : _openRouterApiKey,
   );
-  runApp(MyApp(renderer: renderer));
+  runApp(MyApp(renderer: renderer, localeData: localeData));
 }
 
 Future<Map<String, Map<String, dynamic>>> _loadLocaleData() async {
@@ -102,8 +120,10 @@ class _DemoLocale {
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key, required this.renderer});
+  const MyApp({super.key, required this.renderer, required this.localeData});
+
   final Renderer renderer;
+  final Map<String, Map<String, dynamic>> localeData;
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -112,17 +132,41 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   String _locale = 'en';
   String _language = 'English';
+  String _audience = 'South Asia';
+  late final TextEditingController _audienceController;
+  Timer? _audienceDebounce;
 
   static const _pluralExamples = <int>[1, 2, 5];
 
   @override
+  void initState() {
+    super.initState();
+    _audienceController = TextEditingController(text: _audience);
+  }
+
+  @override
+  void dispose() {
+    _audienceDebounce?.cancel();
+    _audienceController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final colorScheme = ColorScheme.fromSeed(seedColor: Colors.indigo);
+    final baseTheme = ThemeData(
+      colorScheme: colorScheme,
+      scaffoldBackgroundColor: const Color(0xFFF6F7FB),
+      useMaterial3: true,
+    );
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
-        scaffoldBackgroundColor: const Color(0xFFF6F7FB),
-        useMaterial3: true,
+      theme: baseTheme.copyWith(
+        textTheme: GoogleFonts.openSansTextTheme(baseTheme.textTheme),
+        primaryTextTheme: GoogleFonts.openSansTextTheme(
+          baseTheme.primaryTextTheme,
+        ),
       ),
       home: StringLocaleScope(
         localeCode: _locale,
@@ -178,8 +222,16 @@ class _MyAppState extends State<MyApp> {
                                 code: _welcomeCode,
                               ),
                               const SizedBox(height: 16),
-                              _ExampleRow('welcome', Tr(welcome)),
-                              _ExampleRow('sign_in', Tr(signIn)),
+                              _ExampleRow(
+                                'welcome',
+                                Tr(welcome),
+                                compiledTemplate: _compiledTemplate(welcome),
+                              ),
+                              _ExampleRow(
+                                'sign_in',
+                                Tr(signIn),
+                                compiledTemplate: _compiledTemplate(signIn),
+                              ),
                             ],
                           ),
                         ),
@@ -205,6 +257,9 @@ class _MyAppState extends State<MyApp> {
                                     'amount': 2500,
                                   },
                                 ),
+                                compiledTemplate: _compiledTemplate(
+                                  websitePlanPrice,
+                                ),
                               ),
                               const SizedBox(height: 12),
                               const _CodeExample(
@@ -217,6 +272,9 @@ class _MyAppState extends State<MyApp> {
                                 Tr(
                                   websiteStatus,
                                   args: {'status': _statusForLocale(_locale)},
+                                ),
+                                compiledTemplate: _compiledTemplate(
+                                  websiteStatus,
                                 ),
                               ),
                             ],
@@ -248,6 +306,10 @@ class _MyAppState extends State<MyApp> {
                                             'amount': 2500,
                                           },
                                         ),
+                                        compiledTemplate: _compiledTemplate(
+                                          localizedPageCount,
+                                          pluralCount: count,
+                                        ),
                                       ),
                                     )
                                     .toList(),
@@ -257,7 +319,45 @@ class _MyAppState extends State<MyApp> {
                         ),
                         const SizedBox(height: 20),
                         _DocSection(
-                          title: '4. Finish With a Date',
+                          title: '4. Translate User Entered Content',
+                          description:
+                              'Type a visitor region or audience segment. The sentence stays localized, and the entered value is translated at runtime for the selected locale.',
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const _CodeExample(
+                                title: 'Runtime translation definition',
+                                code: _websiteAudienceCode,
+                              ),
+                              const SizedBox(height: 16),
+                              TextField(
+                                controller: _audienceController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Visitor region',
+                                  hintText: 'South Asia',
+                                  border: OutlineInputBorder(),
+                                ),
+                                textInputAction: TextInputAction.done,
+                                onChanged: _onAudienceChanged,
+                              ),
+                              const SizedBox(height: 16),
+                              _ExampleRow(
+                                "args: {'owner': '$_siteOwnerName', 'region': '$_audience'}",
+                                _RealtimeAudiencePreview(
+                                  owner: _siteOwnerName,
+                                  audience: _audience,
+                                  localeCode: _locale,
+                                ),
+                                compiledTemplate: _compiledTemplate(
+                                  websiteAudience,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        _DocSection(
+                          title: '5. Finish With a Date',
                           description:
                               'The same dynamic pattern also covers dates and other formatted values.',
                           child: Column(
@@ -271,6 +371,7 @@ class _MyAppState extends State<MyApp> {
                               _ExampleRow(
                                 "args: {'date': '2025-02-15'}",
                                 Tr(launchDate, args: {'date': '2025-02-15'}),
+                                compiledTemplate: _compiledTemplate(launchDate),
                               ),
                             ],
                           ),
@@ -335,6 +436,170 @@ class _MyAppState extends State<MyApp> {
 
   String _statusForLocale(String localeCode) {
     return _statusByLocale[localeCode] ?? _statusByLocale['en']!;
+  }
+
+  String _compiledTemplate(Message text, {int? pluralCount}) {
+    if (_locale == 'en') return _sourceTemplate(text, pluralCount: pluralCount);
+    final entry = widget.localeData[_locale]?[text.key];
+    if (entry is! Map<String, dynamic>) {
+      return _sourceTemplate(text, pluralCount: pluralCount);
+    }
+    if (text.isPlural) {
+      final useSingular = (pluralCount ?? 1) == 1;
+      return (entry[useSingular ? 'singular' : 'plural'] as String?) ??
+          _sourceTemplate(text, pluralCount: pluralCount);
+    }
+    return (entry['text'] as String?) ?? _sourceTemplate(text);
+  }
+
+  String _sourceTemplate(Message text, {int? pluralCount}) {
+    if (!text.isPlural) return text.source;
+    final parts = text.source.split(pluralSep);
+    return (pluralCount ?? 1) == 1 ? parts.first : parts.last;
+  }
+
+  void _onAudienceChanged(String value) {
+    _audienceDebounce?.cancel();
+    _audienceDebounce = Timer(const Duration(milliseconds: 650), () {
+      final nextAudience = value.trim().isEmpty ? 'South Asia' : value.trim();
+      if (!mounted || nextAudience == _audience) return;
+      setState(() => _audience = nextAudience);
+    });
+  }
+}
+
+class _RealtimeAudiencePreview extends StatefulWidget {
+  const _RealtimeAudiencePreview({
+    required this.owner,
+    required this.audience,
+    required this.localeCode,
+  });
+
+  final String owner;
+  final String audience;
+  final String localeCode;
+
+  @override
+  State<_RealtimeAudiencePreview> createState() =>
+      _RealtimeAudiencePreviewState();
+}
+
+class _RealtimeAudiencePreviewState extends State<_RealtimeAudiencePreview> {
+  String? _value;
+  Object? _error;
+  var _loading = false;
+  var _renderKey = '';
+
+  String get _fallback =>
+      "${widget.owner}'s website supports visitors in ${widget.audience}";
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _render();
+  }
+
+  @override
+  void didUpdateWidget(_RealtimeAudiencePreview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _render();
+  }
+
+  Future<void> _render() async {
+    final key = '${widget.localeCode}::${widget.owner}::${widget.audience}';
+    if (key == _renderKey) return;
+    _renderKey = key;
+
+    if (widget.localeCode == 'en') {
+      setState(() {
+        _value = _fallback;
+        _error = null;
+        _loading = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final result = await trAsync(
+        context,
+        websiteAudience,
+        args: {'owner': widget.owner, 'region': widget.audience},
+      );
+      if (!mounted || key != _renderKey) return;
+      setState(() {
+        _value = result;
+        _loading = false;
+      });
+    } catch (error) {
+      if (!mounted || key != _renderKey) return;
+      setState(() {
+        _value = _fallback;
+        _error = error;
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final statusColor = _error != null
+        ? colorScheme.error
+        : _loading
+        ? colorScheme.primary
+        : colorScheme.onSurfaceVariant;
+    final statusText = widget.localeCode == 'en'
+        ? 'English selected: value is passed through'
+        : _loading
+        ? 'Translating runtime value...'
+        : _error != null
+        ? 'Runtime translation unavailable'
+        : 'Runtime translated value';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(_value ?? _fallback),
+        const SizedBox(height: 8),
+        Text(
+          statusText,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: statusColor,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        if (_error != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            _runtimeErrorMessage(_error!),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  String _runtimeErrorMessage(Object error) {
+    final message = error.toString();
+    if (message.contains('OPENROUTER_API_KEY')) {
+      return 'Run a full restart with: flutter run -d macos --dart-define=OPENROUTER_API_KEY=your_key';
+    }
+    if (message.contains('SocketException') ||
+        message.contains('Operation not permitted') ||
+        message.contains('Connection failed')) {
+      return 'Network request failed. On macOS, rebuild after enabling outbound network access, then run with --dart-define.';
+    }
+    if (message.contains('OpenRouter API error')) {
+      return message;
+    }
+    return 'Runtime error: $message';
   }
 }
 
@@ -448,10 +713,11 @@ class _DocSection extends StatelessWidget {
 }
 
 class _ExampleRow extends StatelessWidget {
-  const _ExampleRow(this.label, this.child);
+  const _ExampleRow(this.label, this.child, {this.compiledTemplate});
 
   final String label;
   final Widget child;
+  final String? compiledTemplate;
 
   @override
   Widget build(BuildContext context) {
@@ -475,11 +741,26 @@ class _ExampleRow extends StatelessWidget {
               height: 1.35,
             ),
           );
-          final outputWidget = DefaultTextStyle.merge(
-            style: Theme.of(
-              context,
-            ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
-            child: child,
+          final outputWidget = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              DefaultTextStyle.merge(
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                child: child,
+              ),
+              if (compiledTemplate != null) ...[
+                const SizedBox(height: 10),
+                SelectableText(
+                  'compiled template: $compiledTemplate',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ],
           );
 
           if (compact) {
