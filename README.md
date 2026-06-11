@@ -137,9 +137,17 @@ final texts = [
 
 ### 2. Create a compile script
 
+Scaffold the project-local compile script:
+
+```bash
+dart run stringlocale:compile --init
+```
+
+This creates `tool/compile_locales.dart`:
+
 ```dart
 import 'package:stringlocale/stringlocale.dart';
-import 'texts.dart';
+import '../lib/texts.dart';
 
 Future<void> main() async {
   await compileLocales(
@@ -171,7 +179,7 @@ You do not need it for pure lookup, number formatting, date formatting, currency
 ### 4. Generate locale JSON
 
 ```bash
-dart run compile.dart
+dart run tool/compile_locales.dart
 ```
 
 The package also exposes a small help command after install:
@@ -180,13 +188,17 @@ The package also exposes a small help command after install:
 dart run stringlocale:compile --help
 ```
 
-That command explains the compile setup, but it does not auto-discover your
-messages. Dart cannot dynamically import your app's `texts.dart` by file path,
-so the real compile command is the tiny project-local script above.
+`--init` creates the script for you, but the compile step is still explicit.
+Dart packages cannot create files during `flutter pub add`, and they cannot
+dynamically import your app's `texts.dart` by path at runtime. The generated
+script keeps the setup testable and compatible with normal Dart imports.
 
-After `flutter pub add stringlocale`, you still create your own `compile.dart`
-that imports your message list and calls `compileLocales(...)`. This keeps the
-compile step explicit, testable, and compatible with normal Dart imports.
+If `tool/compile_locales.dart` already exists, `--init` will not overwrite it.
+To recreate it, run:
+
+```bash
+dart run stringlocale:compile --init --force
+```
 
 Typical output:
 
