@@ -1,0 +1,227 @@
+{
+  "version": 1,
+  "locale": "ru-RU",
+  "source_locale": "en-US",
+  "translation": {
+    "drafter": "openrouter",
+    "model": "google/gemini-2.5-flash"
+  },
+  "strings": {
+    "flutter_sample.title": {
+      "text": "Creator orders",
+      "axis_order": [],
+      "free_axes": {},
+      "plural_param": null,
+      "inlined_enums": [],
+      "enums": {},
+      "required": [],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [],
+        "date": {},
+        "currency": {},
+        "relative": []
+      },
+      "user_adapted": [],
+      "user_adapted_context": {},
+      "locale": "ru-RU",
+      "templates": {
+        "": "Заказы автора"
+      },
+      "enum_values": {},
+      "cell_hashes": {
+        "": "0ec7d66e2843b93a"
+      },
+      "enum_hashes": {}
+    },
+    "flutter_sample.order_summary": {
+      "text": "{name} has {count} {status} orders totaling {total}",
+      "axis_order": [
+        "__plural__"
+      ],
+      "free_axes": {},
+      "plural_param": "count",
+      "inlined_enums": [],
+      "enums": {
+        "status": [
+          "approved",
+          "pending",
+          "rejected"
+        ]
+      },
+      "required": [],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [
+          "count"
+        ],
+        "date": {},
+        "currency": {
+          "total": "NPR"
+        },
+        "relative": []
+      },
+      "user_adapted": [],
+      "user_adapted_context": {},
+      "locale": "ru-RU",
+      "templates": {
+        "one": "У {name} есть {count} {status} заказ на сумму {total}",
+        "few": "У {name} есть {count} {status} заказа на сумму {total}",
+        "many": "У {name} есть {count} {status} заказов на общую сумму {total}",
+        "other": "У {name} {count} {status} заказов на сумму {total}"
+      },
+      "enum_values": {
+        "status": {
+          "approved": "Одобрено",
+          "pending": "В ожидании",
+          "rejected": "Отклонено"
+        }
+      },
+      "cell_hashes": {
+        "one": "3193a33c47eec434",
+        "few": "53d84a4e577b1272",
+        "many": "777524391d810a9e",
+        "other": "4865b10a1572807c"
+      },
+      "enum_hashes": {
+        "status": {
+          "approved": "56e933c46877cca0",
+          "pending": "1ae99ed206b286dd",
+          "rejected": "5a700f290f88c827"
+        }
+      }
+    },
+    "flutter_sample.next_payout": {
+      "text": "Next payout arrives on {date}",
+      "axis_order": [],
+      "free_axes": {},
+      "plural_param": null,
+      "inlined_enums": [],
+      "enums": {},
+      "required": [],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [],
+        "date": {
+          "date": "long"
+        },
+        "currency": {},
+        "relative": []
+      },
+      "user_adapted": [],
+      "user_adapted_context": {},
+      "locale": "ru-RU",
+      "templates": {
+        "": "Следующая выплата {date}"
+      },
+      "enum_values": {},
+      "cell_hashes": {
+        "": "3a69919b43edc0c6"
+      },
+      "enum_hashes": {}
+    },
+    "flutter_sample.audience_message": {
+      "text": "{name}, your {tier} workspace is ready",
+      "axis_order": [
+        "audience",
+        "tier"
+      ],
+      "free_axes": {
+        "audience": [
+          "buyer",
+          "seller"
+        ]
+      },
+      "plural_param": null,
+      "inlined_enums": [
+        "tier"
+      ],
+      "enums": {},
+      "required": [
+        "audience"
+      ],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [],
+        "date": {},
+        "currency": {},
+        "relative": []
+      },
+      "user_adapted": [],
+      "user_adapted_context": {},
+      "locale": "ru-RU",
+      "templates": {
+        "buyer|standard": "{name}, ваше рабочее пространство Standard готово",
+        "buyer|gold": "{name}, ваше рабочее пространство Gold готово",
+        "seller|standard": "{name}, ваше рабочее пространство Standard готово",
+        "seller|gold": "{name}, ваше рабочее пространство Gold готово"
+      },
+      "enum_values": {},
+      "cell_hashes": {
+        "buyer|standard": "584e136d1bd77a95",
+        "buyer|gold": "422358fc1bdcc4e6",
+        "seller|standard": "3d1e067371792b26",
+        "seller|gold": "7a6df0ae35877edd"
+      },
+      "enum_hashes": {}
+    },
+    "flutter_sample.snackbar": {
+      "text": "Saved locale {locale}",
+      "axis_order": [],
+      "free_axes": {},
+      "plural_param": null,
+      "inlined_enums": [],
+      "enums": {},
+      "required": [],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [],
+        "date": {},
+        "currency": {},
+        "relative": []
+      },
+      "user_adapted": [],
+      "user_adapted_context": {},
+      "locale": "ru-RU",
+      "templates": {
+        "": "Сохранена локаль {locale}"
+      },
+      "enum_values": {},
+      "cell_hashes": {
+        "": "2364454a50257d31"
+      },
+      "enum_hashes": {}
+    },
+    "flutter_sample.user_adapted_preview": {
+      "text": "Shopper preview: {note}",
+      "axis_order": [],
+      "free_axes": {},
+      "plural_param": null,
+      "inlined_enums": [],
+      "enums": {},
+      "required": [],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [],
+        "date": {},
+        "currency": {},
+        "relative": []
+      },
+      "user_adapted": [
+        "note"
+      ],
+      "user_adapted_context": {
+        "note": "Friendly short note shown to shoppers in product cards"
+      },
+      "locale": "ru-RU",
+      "templates": {
+        "": "Предварительный просмотр для покупателя: {note}"
+      },
+      "enum_values": {},
+      "cell_hashes": {
+        "": "7cc9097c7f97b3b9"
+      },
+      "enum_hashes": {}
+    }
+  }
+}

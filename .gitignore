@@ -1,55 +1,14 @@
-# OS / editor noise
-.DS_Store
-Thumbs.db
-*.swp
-*.swo
-*.tmp
-*.temp
-.idea/
-*.iml
-
-# Local environment and secrets
-.env
-.env.*
-!.env.example
-*.pem
-*.key
-*.p12
-
-# Local/generated tooling metadata
-.github/modernize/
-migrate_working_dir/
-.history/
-
-# Dart / Flutter / Pub generated files
 .dart_tool/
 .packages
-.pub/
-.pub-cache/
 build/
-coverage/
-doc/api/
 pubspec.lock
 .flutter-plugins
 .flutter-plugins-dependencies
-
-# Generated locale output. Keep checked-in example fixtures if added later.
-locales/
-!example/locales/
-!example/locales/**
-
-# Flutter native build intermediates
-**/.gradle/
-**/local.properties
-**/ios/Flutter/.last_build_id
-**/ios/Flutter/Generated.xcconfig
-**/ios/Flutter/flutter_export_environment.sh
-**/ios/Flutter/ephemeral/
-**/macos/Flutter/ephemeral/
-**/linux/flutter/ephemeral/
-**/windows/flutter/ephemeral/
-
-# Test/build reports and logs
-*.log
-test_cache/
-unit_test_assets/
+dist/
+example/dist/
+.DS_Store
+.idea/
+*.iml
+coverage/
+doc/api/
+.pub-cache/

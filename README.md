@@ -1,274 +1,357 @@
-# stringlocale (Dart / Flutter)
+# stringlocale
 
-Compile-time LLM localization for Dart and Flutter. You define your English source strings once, attach type information to each placeholder, generate locale JSON at build time, and render localized UI with lookup + interpolation at runtime.
+[![pub package](https://img.shields.io/pub/v/stringlocale.svg)](https://pub.dev/packages/stringlocale)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Companion to [`stringlocale`](https://github.com/stringlocale/stringlocale) for Python and [`stringlocale-react`](https://github.com/stringlocale/stringlocale-react) for TypeScript. All three use the same locale JSON shape, which makes it practical to share translations across backend, web, and Flutter clients.
+Your UI strings have parameters: a count, a name, a price, a date. Translating them is not just swapping words:
 
-## What problem this solves
+- Spanish needs gender agreement: `Bienvenido` vs `Bienvenida`.
+- Arabic has six plural forms and its own digits: `٥`, not `5`.
+- Nepali writes numbers in Devanagari: `१२००`, and pluralizes differently again.
 
-Most localization systems are strong at static strings but weak at mixed templates like:
+Normally you hand-maintain every one of those variants, per language, in JSON files that drift from your Dart code. **stringlocale** flips it around: you declare each string once and tag every parameter with what it is: a number, a plural count, a currency, a date, a gendered subject, a literal name, or a translated enum. A build-time compiler then generates every axis variant, such as gender x plural x custom variants, for every target locale into static JSON bundles. At runtime your Dart or Flutter app just looks them up. No translation API call happens while the app is running.
 
-- `Website status: {status}` where `status` should be translated dynamically
-- `{owner}'s website plan costs {amount} per month` where only some values should be localized
-- `You have {count} localized page(s)` where plural rules vary by locale
-- user-authored prose that should keep its words but adapt dates, numbers, and currency formatting
+This package is the **Dart/Flutter runtime plus a CLI**: `compile`, `check`, and `prune`. The compiler writes plain JSON locale bundles, and the runtime reads them back in Dart or Flutter.
 
-`stringlocale` makes those cases explicit by forcing every placeholder to declare what it is.
+## Quick Start
 
-## Where to use it
-
-Use `stringlocale` when your Dart or Flutter app has localized UI that combines:
-
-- static app copy
-- runtime values like names, statuses, counts, dates, and prices
-- plural rules that differ by locale
-- generated locale JSON you want to review, commit, and override
-- optional LLM help for translating controlled runtime labels
-
-It is not a replacement for product/content strategy, human review, or every
-calendar system. It is a practical layer for typed UI strings where placeholders
-need explicit localization behavior.
-
-## Installation
-
-Add the package:
-
-```bash
-dart pub add stringlocale
-```
-
-For Flutter apps:
-
-```bash
-flutter pub add stringlocale
-```
-
-Or add it manually:
+**1. Install**
 
 ```yaml
 dependencies:
-  stringlocale: ^0.2.0
+  stringlocale: ^0.3.0
 ```
 
-If you use Flutter widgets like `StringLocaleScope` and `Tr`, import:
-
-```dart
-import 'package:stringlocale/stringlocale_flutter.dart';
-```
-
-If you only need the pure Dart API, import:
+Import the runtime:
 
 ```dart
 import 'package:stringlocale/stringlocale.dart';
 ```
 
-## Mental model
-
-```text
-texts.dart
-  -> compile step with OpenRouter
-  -> locales/ne-NP.json, locales/ja-JP.json, ...
-  -> runtime Renderer lookup + interpolation
-  -> LLM only for translatable / userAdapted param values
-```
-
-At compile time:
-
-- static strings are translated once per locale
-- dynamic template shells are translated once per locale
-- plural strings generate singular form, plural form, and a safe boolean rule
-- output is JSON that you can commit to source control
-
-At runtime:
-
-- most rendering is just lookup + placeholder substitution
-- only `translatable` and `userAdapted` params call the LLM
-- runtime-translated values are cached in memory by locale and context
-
-## Quick start
-
-### 1. Define messages
-
-Create a file such as `texts.dart`:
+For Flutter widgets:
 
 ```dart
+import 'package:stringlocale/flutter.dart';
+```
+
+For build scripts, compiler APIs, and checks:
+
+```dart
+import 'package:stringlocale/compile.dart';
+```
+
+**2. Declare your strings** once, with a `Param` per `{placeholder}`:
+
+```dart
+// lib/strings.dart
 import 'package:stringlocale/stringlocale.dart';
 
-final welcome = staticText('welcome', 'Welcome to stringlocale');
+final greeting = StringLocale(
+  'Welcome back, {name}',
+  id: 'greeting',
+  params: {'name': Param.literal()},
+  gendered: true,
+);
 
-final websitePlanPrice = dynamicText(
-  'website_plan_price',
-  '{owner}\'s website plan costs {amount} per month',
-  {
-    'owner': ParamKind.literal,
-    'amount': const Param(
-      'amount',
-      kind: ParamKind.currency,
-      currency: 'NPR',
-    ),
+final inbox = StringLocale(
+  'You have {count} messages',
+  id: 'inbox',
+  params: {'count': Param.plural()},
+);
+
+final fee = StringLocale(
+  '{creator} charges {amount} per post',
+  id: 'fee',
+  params: {
+    'creator': Param.literal(),
+    'amount': Param.currency('USD'),
   },
 );
 
-final websiteStatus = dynamicText(
-  'website_status',
-  'Website status: {status}',
-  {
-    'status': const Param(
-      'status',
-      kind: ParamKind.translatable,
-      context: 'website publishing status',
-    ),
-  },
-);
+final allStrings = [greeting, inbox, fee];
 
-final pageCount = pluralText(
-  'page_count',
-  'You have {count} localized page',
-  'You have {count} localized pages',
-);
-
-final texts = [
-  welcome,
-  websitePlanPrice,
-  websiteStatus,
-  pageCount,
-];
+int registerAll() => allStrings.length;
 ```
 
-### 2. Create a compile script
+Dart top-level `final` values are lazy. Keep your declarations in a list and call a registration function before compiling or resolving so every `StringLocale` is constructed.
 
-Scaffold the project-local compile script:
-
-```bash
-dart run stringlocale:compile --init
-```
-
-This creates `tool/compile_locales.dart`:
-
-```dart
-import 'package:stringlocale/stringlocale.dart';
-import '../lib/texts.dart';
-
-Future<void> main() async {
-  await compileLocales(
-    texts: texts,
-    locales: [
-      'ne-NP:Nepali',
-      'ja-JP:Japanese',
-      'ar-SA:Arabic',
-    ],
-    localeDir: 'locales',
-  );
-}
-```
-
-### 3. Set your OpenRouter key
+**3. Set your translator key** if you want LLM-drafted translations through OpenRouter:
 
 ```bash
 export OPENROUTER_API_KEY=sk-or-...
 ```
 
-For Flutter runtime translation, pass the key into the running app with
-`--dart-define`:
+No key yet? Use `--drafter offline` to emit deterministic placeholder-style bundles and wire up the pipeline first.
+
+**4. Compile to your target locales**:
 
 ```bash
-flutter run --dart-define=OPENROUTER_API_KEY=$OPENROUTER_API_KEY
+dart run stringlocale compile \
+  --locales en-US,es-ES,ne-NP,ar-SA \
+  --source-locale en-US \
+  --out public/i18n
 ```
 
-If the app is already running, stop it and run `flutter run` again. Hot reload
-or hot restart will not apply a new `--dart-define` value.
+This writes `public/i18n/manifest.json` plus one `bundle.<locale>.json` per locale, with every gender/plural/custom-axis variant filled in. Re-running only redrafts cells whose source text, locale, enum value, or OpenRouter model changed.
 
-You need this key for:
-
-- compile-time locale generation
-- runtime `translatable` params
-- runtime `userAdapted` params
-
-You do not need it for pure lookup, number formatting, date formatting, currency formatting, or plural selection.
-
-### 4. Generate locale JSON
+Choose a specific OpenRouter model:
 
 ```bash
-dart run tool/compile_locales.dart
+dart run stringlocale compile \
+  --locales en-US,es-ES,ne-NP \
+  --source-locale en-US \
+  --drafter openrouter \
+  --model google/gemini-2.5-flash \
+  --out public/i18n
 ```
 
-The package also exposes a small help command after install:
+**5. Use the same string in any locale**:
+
+```dart
+import 'package:stringlocale/stringlocale.dart';
+import 'strings.dart';
+
+void main() {
+  registerAll();
+
+  final bundle = Bundle.fromDir('public/i18n', ioFileReader);
+  useBundle(bundle, locale: 'ne-NP');
+
+  print(greeting.resolve(args: {'name': 'Anisha', 'gender': 'female'}));
+  print(inbox.resolve(args: {'count': 5}));
+}
+```
+
+In Flutter, wrap the app in `StringLocaleScope` and use `Tr` or `tr(context, ...)`. See [Resolving](#resolving).
+
+**6. Keep bundles in sync as code changes**:
 
 ```bash
-dart run stringlocale:compile --help
+dart run stringlocale check --out public/i18n
+dart run stringlocale prune --out public/i18n --dry-run
+dart run stringlocale prune --out public/i18n
 ```
 
-`--init` creates the script for you, but the compile step is still explicit.
-Dart packages cannot create files during `flutter pub add`, and they cannot
-dynamically import your app's `texts.dart` by path at runtime. The generated
-script keeps the setup testable and compatible with normal Dart imports.
+Use `check` as a CI gate: it exits non-zero when declarations and bundles drift.
 
-If `tool/compile_locales.dart` already exists, `--init` will not overwrite it.
-To recreate it, run:
+## Declaring Strings
+
+Each string is one typed object: a stable `id`, the source text, and a `Param` per `{placeholder}` describing how that value renders. Placeholders are validated against params at construction time.
+
+```dart
+// lib/strings.dart
+import 'package:stringlocale/stringlocale.dart';
+
+final followers = StringLocale(
+  '{n} followers',
+  id: 'followers',
+  params: {'n': Param.number()},
+);
+
+final inbox = StringLocale(
+  'You have {count} messages',
+  id: 'inbox',
+  params: {'count': Param.plural()},
+);
+
+final fee = StringLocale(
+  '{creator} charges {amount} per post',
+  id: 'fee',
+  params: {
+    'creator': Param.literal(),
+    'amount': Param.currency('NPR'),
+  },
+);
+
+final greeting = StringLocale(
+  '{name}, your account is ready',
+  id: 'greeting',
+  params: {'name': Param.literal()},
+  gendered: true,
+);
+
+final allStrings = [followers, inbox, fee, greeting];
+
+int registerAll() => allStrings.length;
+```
+
+You do not write translation keys, per-locale JSON, plural tables, or formatting glue. The params carry enough structure for the compiler to draft the right cells and for the runtime to format values safely.
+
+## CLI Reference: Compile, Check, Prune
+
+### `compile`
+
+Imports your Dart strings file, calls your registration function, drafts a translation for each cell across the target locales, and writes the bundles.
 
 ```bash
-dart run stringlocale:compile --init --force
+dart run stringlocale compile \
+  --input lib/strings.dart \
+  --register registerAll \
+  --source-locale en-US \
+  --locales ne-NP,nl-NL,ar-SA \
+  --out public/i18n
 ```
 
-Typical output:
+| Flag | Default | Meaning |
+| --- | --- | --- |
+| `--input <path>` | `lib/strings.dart` | Dart file that declares strings |
+| `--register <name>` | `registerAll` | Function called after import to construct lazy declarations |
+| `--no-register` | off | Import the input file but skip a register function |
+| `--locales <codes>` | required | Comma-separated locale list, preferably full tags like `ne-NP` |
+| `--out <dir>` | `dist` | Output directory for split bundles |
+| `--combined <path>` | off | Emit one combined bundle file instead of split per-locale files |
+| `--source-locale <code>` | `en` | Locale of the source strings |
+| `--drafter <mode>` | `auto` | `auto`, `offline`, or `openrouter` |
+| `--model <id>` | `google/gemini-2.5-flash` | OpenRouter model id |
+| `--force` | off | Re-draft every cell even when incremental hashes match |
+| `--quiet` | off | Hide progress messages except final output |
+
+**Translator.** With `OPENROUTER_API_KEY` set, `--drafter auto` uses OpenRouter. Without a key, it uses `OfflineDrafter`, which emits deterministic placeholders such as `ne:You have {count} messages`. You can force either behavior with `--drafter openrouter` or `--drafter offline`.
+
+**Model tracking.** Generated bundles record the drafter and model that produced them:
 
 ```json
 {
-  "welcome": {
-    "text": "stringlocale मा स्वागत छ",
-    "src_hash": "a3f1b2c4d5e6f7a8"
-  },
-  "page_count": {
-    "singular": "तपाईंसँग {count} अभियान छ",
-    "plural": "तपाईंसँग {count} अभियानहरू छन्",
-    "rule": "count < 2",
-    "rule_explanation": "Use singular when count is less than 2.",
-    "src_hash": "b4c5d6e7f8a9b0c1"
+  "translation": {
+    "drafter": "openrouter",
+    "model": "google/gemini-2.5-flash"
   }
 }
 ```
 
-### 5. Render in your app
+The model is also part of each cell's incremental hash, so the same model reuses unchanged translations, while choosing a different model drafts those cells again.
+
+**Output.** Split output writes a manifest plus one file per locale:
+
+```text
+public/i18n/
+  manifest.json
+  bundle.ne-NP.json
+  bundle.nl-NL.json
+  bundle.ar-SA.json
+```
+
+Combined output writes one file:
+
+```bash
+dart run stringlocale compile \
+  --locales en-US,ne-NP,nl-NL \
+  --source-locale en-US \
+  --combined public/i18n/bundle.json
+```
+
+During compilation the CLI prints the string count, target locales, drafter mode, model when supplied, and each locale as it starts.
+
+### `check`
+
+Imports the current strings, reads the compiled bundle, and reports drift. It exits non-zero on problems, so it fits CI.
+
+```bash
+dart run stringlocale check \
+  --input lib/strings.dart \
+  --register registerAll \
+  --out public/i18n
+```
+
+It reports:
+
+- **missing**: id declared in code but absent from the bundle
+- **orphaned**: id in the bundle but no longer declared in code
+- **stale**: recorded source text differs from current source text
+- **placeholder drift**: translated templates dropped or invented placeholders
+- **untranslated warnings**: non-source cells identical to the source text
+
+### `prune`
+
+Removes orphaned entries, meaning ids in the bundle that no longer exist in code, without redrafting anything.
+
+```bash
+dart run stringlocale prune --out public/i18n --dry-run
+dart run stringlocale prune --out public/i18n
+```
+
+Use `--dry-run` first to preview removals.
+
+## Resolving
+
+Load bundles once at startup, then resolve strings anywhere. No LLM or network call happens at resolve time. It is a pure lookup with numbers, dates, currency, relative values, enum labels, plural categories, and digit conversion handled offline.
+
+### Flutter
+
+Declare your compiled bundles as assets in your app's `pubspec.yaml`:
+
+```yaml
+flutter:
+  assets:
+    - assets/i18n/
+```
+
+Load the generated split bundles from assets:
 
 ```dart
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
-import 'package:stringlocale/stringlocale_flutter.dart';
+import 'package:flutter/services.dart';
+import 'package:stringlocale/flutter.dart';
 
-import 'texts.dart';
+Future<Bundle> loadBundleFromAssets(String assetDir) async {
+  final manifest = jsonDecode(
+    await rootBundle.loadString('$assetDir/manifest.json'),
+  ) as Map<String, dynamic>;
+  final files = manifest['files'] as Map;
 
-void main() {
-  final renderer = Renderer(
-    localeData: {
-      'ne-NP': jsonDecode(neNpJson) as Map<String, dynamic>,
-      'ja-JP': jsonDecode(jaJpJson) as Map<String, dynamic>,
-    },
-  );
+  Bundle? bundle;
+  for (final entry in files.values.cast<Map>()) {
+    final data = jsonDecode(
+      await rootBundle.loadString('$assetDir/${entry['path']}'),
+    ) as Map<String, dynamic>;
+    if (bundle == null) {
+      bundle = Bundle(data);
+    } else {
+      bundle.merge(data);
+    }
+  }
 
-  runApp(
-    StringLocaleScope(
-      localeCode: 'ne-NP',
-      languageName: 'Nepali',
-      renderer: renderer,
-      child: const MyApp(),
-    ),
-  );
+  if (bundle == null) throw StateError('No stringlocale bundles found');
+  return bundle;
 }
+```
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+Wrap your app and render strings with `Tr`:
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:stringlocale/flutter.dart';
+
+import 'strings.dart';
+
+class App extends StatelessWidget {
+  const App({super.key, required this.bundle});
+
+  final Bundle bundle;
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(title: Tr(welcome)),
-        body: Column(
+    return StringLocaleScope(
+      locale: 'ne-NP',
+      bundle: bundle,
+      child: Builder(
+        builder: (context) => Column(
           children: [
-            Tr(pageCount, args: {'count': 5}),
-            Tr(websiteStatus, args: {'status': 'approved'}),
-            Tr(websitePlanPrice, args: {'owner': 'Jane Doe', 'amount': 2500}),
+            Tr(greeting, args: {'name': 'Anisha', 'gender': 'female'}),
+            Tr(inbox, args: {'count': 5}),
+            FilledButton(
+              onPressed: () {
+                final label = tr(context, fee, args: {
+                  'creator': 'Anisha',
+                  'amount': 2500,
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(label)),
+                );
+              },
+              child: const Text('Show'),
+            ),
           ],
         ),
       ),
@@ -277,499 +360,234 @@ class MyApp extends StatelessWidget {
 }
 ```
 
-## Message types and parameter kinds
-
-### Static messages
-
-Use `staticText()` or its alias `t()` when a string has no placeholders.
+Switch locale with the scope controller:
 
 ```dart
-final welcome = staticText('welcome', 'Welcome to stringlocale');
-final shortAlias = t('sign_in', 'Sign in');
+StringLocaleScope.of(context).setLocale('fr-FR');
 ```
 
-### Dynamic messages
+The package includes a runnable Flutter sample with locale chips, `Tr`, imperative `tr(context, ...)`, compiled asset bundles, and a macOS runner:
 
-Use `dynamicText()` when the message contains placeholders and each placeholder has a declared type.
+```bash
+cd example
+flutter run -d macos
+```
+
+### Plain Dart
 
 ```dart
-final launchDate = dynamicText(
-  'launch_date',
-  'Launch by {date}',
-  {
-    'date': const Param('date', kind: ParamKind.date, fmt: 'medium'),
-  },
-);
-```
+import 'package:stringlocale/stringlocale.dart';
 
-`message()` and `dynamic_()` are still available as backward-compatible aliases. `dynamic_()` exists because `dynamic` is a Dart keyword, but new code should prefer `dynamicText()`.
+import 'strings.dart';
 
-### Plural messages
+void main() {
+  registerAll();
 
-Use `pluralText()` when a string changes by count. The compile step translates both forms and generates a locale-specific rule.
+  final bundle = Bundle.fromDir('public/i18n', ioFileReader);
+  useBundle(bundle, locale: 'ne-NP');
 
-```dart
-final pageCount = pluralText(
-  'page_count',
-  'You have {count} localized page',
-  'You have {count} localized pages',
-);
-```
+  final text = fee.resolve(args: {
+    'creator': 'Jane Doe',
+    'amount': 2500,
+  });
 
-The count placeholder defaults to `count`, but you can change it:
-
-```dart
-final cartItems = pluralText(
-  'cart_items',
-  '{n} item in cart',
-  '{n} items in cart',
-  countParam: 'n',
-);
-```
-
-Plural messages can also have additional typed placeholders. The `countParam`
-is the one value used to choose singular vs plural; every other placeholder is
-formatted normally.
-
-```dart
-final localizedPageCount = pluralText(
-  'localized_page_count',
-  '{owner}\'s website has {pages} localized page ready for {amount}',
-  '{owner}\'s website has {pages} localized pages ready for {amount}',
-  countParam: 'pages',
-  params: {
-    'owner': ParamKind.literal,
-    'amount': const Param('amount', kind: ParamKind.currency, currency: 'NPR'),
-  },
-);
-```
-
-Render it with all placeholders, including the plural decider:
-
-```dart
-Tr(
-  localizedPageCount,
-  args: {'owner': 'Jane Doe', 'pages': 2, 'amount': 2500},
-)
-```
-
-### Parameter kinds
-
-| Kind | Use when | Runtime behavior |
-|------|----------|------------------|
-| `literal` | Brands, URLs, usernames, IDs | Passed through unchanged |
-| `number` | Plain numeric values | Locale-aware digit conversion |
-| `numberPlural` | Count value for plural messages | Drives singular/plural selection and formatting |
-| `date` | Dates you want formatted | Uses `intl` date formatting |
-| `currency` | Money amounts | Uses locale-aware currency formatting |
-| `relative` | Relative times like "3 days ago" | Uses locale-aware relative formatting |
-| `translatable` | Enum-like values such as status/category | LLM translation at runtime, cached |
-| `user` | User-authored text that must stay untouched | Passed through unchanged |
-| `userAdapted` | Free text whose words stay the same but numbers/dates should adapt | LLM adaptation at runtime, cached |
-
-### When to choose `translatable` vs `user`
-
-Use `translatable` for a limited vocabulary you control, such as:
-
-- `approved`
-- `fashion`
-- `instagram`
-
-Use `user` for content you must not rewrite, such as:
-
-- comments
-- support notes entered by users
-- imported copy from another system
-
-Use `userAdapted` for content where prose should remain untouched but locale formatting should change, such as:
-
-- `Offer ends Feb 15, 2026 and costs NPR 2,500`
-
-## Placeholder rules
-
-`stringlocale` validates your templates up front.
-
-- every `{placeholder}` in the source must be declared in params
-- every declared param must exist in the source
-- compile-time translations must preserve placeholders
-- plural rules are validated before being written to JSON
-
-This catches common localization failures early instead of silently rendering broken templates.
-
-## Compiling locales in practice
-
-`compileLocales()` accepts:
-
-- `texts`: your list of `Message`s
-- `locales`: locale entries as either `code` or `code:Language`
-- `localeDir`: output directory, default `locales`
-- `model`: OpenRouter model name
-- `apiKey`: optional explicit API key override
-- `force`: retranslate even if source hashes are unchanged
-- `client`: custom HTTP client, useful in tests
-
-Example:
-
-```dart
-await compileLocales(
-  texts: texts,
-  locales: ['ne-NP:Nepali', 'ja-JP:Japanese'],
-  localeDir: 'locales',
-  force: false,
-);
-```
-
-### Recompile behavior
-
-The compiler stores a stable `src_hash` for each source string.
-
-- unchanged source: skipped on the next compile
-- changed source: retranslated
-- override exists: compile warns if the source changed so you can review stale manual translations
-
-### What gets translated at compile time
-
-- static messages
-- translated template shells for dynamic messages
-- both sides of plural messages
-- plural rules
-
-### What does not get translated at compile time
-
-- `translatable` param values such as `approved`
-- `userAdapted` runtime free text
-- actual runtime data passed by the caller
-
-## Using the renderer
-
-The `Renderer` is the runtime engine. It can be used with or without Flutter.
-
-```dart
-final renderer = Renderer(
-  localeDir: 'locales',
-  useDigitConversion: true,
-  localeData: {
-    'ne-NP': neNpMap,
-  },
-);
-```
-
-Useful methods:
-
-- `render(...)` renders a `Message`
-- `setLocale(...)` registers compiled locale data in memory
-- `loadLocale(...)` loads `locales/<code>.json` and merges overrides
-- `setOverrides(...)` injects manual overrides in memory
-- `clearValueCache()` resets cached runtime value translations
-- `clearLocaleCache()` clears cached locale JSON
-
-### Pure Dart usage
-
-```dart
-final renderer = Renderer(localeData: {'ne-NP': neNpMap});
-
-final text = await renderer.render(
-  welcome,
-  'ne-NP',
-  languageName: 'Nepali',
-);
-```
-
-### Flutter widget usage
-
-Wrap your widget tree in `StringLocaleScope`:
-
-```dart
-StringLocaleScope(
-  localeCode: 'ja-JP',
-  languageName: 'Japanese',
-  renderer: renderer,
-  child: MyHomePage(),
-)
-```
-
-Render text with `Tr`:
-
-```dart
-Tr(welcome)
-Tr(pageCount, args: {'count': 5})
-Tr(websiteStatus, args: {'status': 'approved'})
-```
-
-Use a custom builder if you do not want the default `Text` widget:
-
-```dart
-Tr(
-  welcome,
-  builder: (value) => Text(
-    value,
-    style: Theme.of(context).textTheme.titleLarge,
-  ),
-)
-```
-
-### Switching locale in Flutter
-
-```dart
-StringLocaleScope.of(context).setLocale('ja-JP', 'Japanese');
-```
-
-You can also rebuild the parent `StringLocaleScope` with a new `localeCode` and `languageName`.
-
-### Imperative rendering
-
-Use `trAsync()` outside build methods, for example inside callbacks:
-
-```dart
-final label = await trAsync(
-  context,
-  websitePlanPrice,
-  args: {'owner': 'Jane Doe', 'amount': 2500},
-);
-```
-
-## Loading locale JSON
-
-There are two common ways to provide compiled data.
-
-### Option 1: parse JSON yourself and pass `localeData`
-
-Good for demos, tests, or when you already have the JSON in memory.
-
-```dart
-final renderer = Renderer(
-  localeData: {
-    'ne-NP': jsonDecode(neNpJson) as Map<String, dynamic>,
-  },
-);
-```
-
-### Option 2: use `loadLocale()`
-
-Good for Dart VM and non-web Flutter when locale files live on disk.
-
-```dart
-final renderer = Renderer(localeDir: 'locales');
-await renderer.loadLocale('ne-NP');
-```
-
-`loadLocale()` automatically merges `locales/overrides/<code>.json` on top if present.
-
-## Plural rules and safety
-
-Dart has no `eval`, so `stringlocale` uses a tiny built-in expression evaluator for plural rules. Rules are limited to safe syntax:
-
-- one count variable such as `count`
-- integer literals
-- `+ - * / %`
-- `== != < > <= >=`
-- `&& || !`
-- parentheses
-- boolean literals `true` and `false`
-
-Examples:
-
-```text
-count < 2
-count == 1
-count % 10 == 1 && count % 100 != 11
-true
-```
-
-If a rule is invalid at runtime, the renderer falls back to `count < 2`.
-
-## Digit conversion and formatting
-
-`number`, `numberPlural`, `date`, `currency`, and `relative` can convert digits for locales that use non-Latin numerals.
-
-| Locale | `12` becomes |
-|--------|--------------|
-| `ne`, `hi` | `१२` |
-| `ar` | `١٢` |
-| `fa` | `۱۲` |
-| `bn` | `১২` |
-| `th` | `๑๒` |
-
-Disable this if you want raw Western digits everywhere:
-
-```dart
-final renderer = Renderer(useDigitConversion: false);
-```
-
-Date formatting uses `intl` and stays Gregorian. If your app needs Bikram Sambat or another non-Gregorian calendar, format the date yourself and pass it as `literal` or `user`.
-
-## Registry helper
-
-If you prefer collecting messages in one place with duplicate-key protection, use `Registry`:
-
-```dart
-final registry = Registry();
-
-final welcome = registry.staticText('welcome', 'Welcome');
-final status = registry.dynamicText('status', 'Status: {status}', {
-  'status': ParamKind.translatable,
-});
-
-final texts = registry.texts;
-```
-
-`Registry` throws immediately if the same key is registered twice.
-
-## Manual overrides
-
-Overrides are human-reviewed corrections layered on top of generated locale JSON.
-You do not need them to get started. They become useful when an LLM translation
-is mostly right but needs a product, legal, brand, or native-speaker adjustment.
-
-Keep generated files in `locales/<code>.json`, then put human edits for that
-same locale in:
-
-```text
-locales/overrides/<locale>.json
-```
-
-For example, Nepali corrections go in `locales/overrides/ne-NP.json`, while
-Japanese corrections go in `locales/overrides/ja-JP.json`.
-
-Example:
-
-```json
-{
-  "welcome": {
-    "text": "मानव-सम्पादित अनुवाद",
-    "src_hash": "a3f1b2c4d5e6f7a8"
-  }
+  print(text);
 }
 ```
 
-Behavior:
-
-- overrides always win at runtime
-- the compiler does not overwrite override files
-- if the English source changes, compile warns that the override may be stale
-- deleting an override falls back to the generated translation
-
-You can also inject overrides directly:
+You can also pass `locale:` per call:
 
 ```dart
-renderer.setOverrides('ne-NP', overrideMap);
+final text = inbox.resolve(
+  locale: 'ja-JP',
+  args: {'count': 5},
+);
 ```
 
-Most small apps can ignore overrides at first. For production apps, they give
-you a clean review workflow: generate translations quickly, review them in
-`dashboard.html`, export only the corrections, and keep those corrections stable
-across future compiles.
+Before a bundle is loaded, `.resolve()` falls back to the source string and local value formatting.
 
-## Runtime fallback behavior
+## Parameter Types
 
-If a locale entry does not exist:
+| Helper | Use for | Runtime behavior |
+| --- | --- | --- |
+| `Param.literal()` | Brand names, usernames, URLs, proper nouns | Passed through verbatim |
+| `Param.number()` | Numeric values | Locale digits and separators |
+| `Param.plural()` | Counts that affect wording | Locale plural category plus number formatting |
+| `Param.translatable([...])` | Fixed enum-like values | Translated at compile time and substituted at runtime |
+| `Param.translatable([...], inline: true)` | Enum values that affect grammar | Folded into template variants |
+| `Param.date(fmt)` | Dates | `package:intl` date formatting |
+| `Param.currency('NPR')` | Money | `package:intl` currency formatting |
+| `Param.relative()` | Relative time, such as `3 days ago` | Offline relative formatting |
+| `Param.user()` | Free user text | Passed through untouched |
+| `Param.userAdapted(context: ...)` | Free prose needing custom adaptation | Calls your bundle adapter only when supplied |
 
-- static and dynamic messages fall back to the English source template
-- plural messages fall back to the English plural form when localized data is missing
+## userAdapted: What To Provide
 
-If a runtime translation call fails inside `Tr`, the widget shows its fallback text, which defaults to the English source.
+`userAdapted` is a runtime adaptation hook for user-provided prose. It is opt-in and only applies to params you explicitly mark.
 
-## Caching behavior
+You need to provide three things:
 
-Runtime value translation is cached in memory:
+1. Mark params that need adaptation:
 
-- `translatable` values cache by value + locale + context
-- `userAdapted` values cache by content hash + locale + context
+```dart
+final profileBio = StringLocale(
+  'Creator bio: {bio}',
+  id: 'profile_bio',
+  params: {
+    'bio': Param.userAdapted(
+      context: 'Short creator profile shown to shoppers',
+    ),
+  },
+);
+```
 
-This keeps repeated enum values like `approved` from hitting the LLM on every render.
+2. Load the bundle. If `OPENROUTER_API_KEY` is set, `userAdapted` uses OpenRouter by default on async runtime APIs (`resolveAsync`, `AsyncTr`, `trAsync`). You can still pass your own adapter to override it:
 
-## Demo app
+```dart
+import 'package:stringlocale/stringlocale.dart';
 
-This repository includes:
+final bundle = load(
+  'public/i18n',
+  locale: 'ne-NP',
+  userAdaptedMode: UserAdaptedMode.realtime,
+  adapter: (value, locale, context) {
+    // Implement your own service call here.
+    return '$locale: $value';
+  },
+);
+```
 
-- `example/` for a package-style example
-- `stringlocale_demo/` for a runnable Flutter app
-- `dashboard.html` for reviewing and exporting overrides
+3. Resolve normally with user text in args:
 
-To compile locales for the demo:
+```dart
+final out = profileBio.resolve(args: {
+  'bio': '1200 followers, vintage camera collector, ships on Fridays',
+});
+```
+
+How it works:
+
+- If no adapter is provided, `userAdapted` is passthrough.
+- If `OPENROUTER_API_KEY` is set and no adapter is provided, async `userAdapted` uses OpenRouter automatically.
+- If current locale shares the source language, adaptation is skipped.
+- Adapter inputs are `(value, locale, context)`.
+- `UserAdaptedMode.cached` keeps adapted results by `(value, locale, context)` to avoid repeated calls.
+- `UserAdaptedMode.realtime` asks the adapter every time the string resolves.
+
+Runnable examples:
+
+- Offline adapter demo: `dart run example/main.dart`
+- OpenRouter runtime adapter demo: `dart run example/user_adapted_openrouter.dart`
+
+## Axes And Cell Economics
+
+Use `gendered: true` for a built-in `gender` axis:
+
+```dart
+final message = StringLocale(
+  '{name} has {count} saved campaigns',
+  id: 'saved_campaigns',
+  params: {
+    'name': Param.literal(),
+    'count': Param.plural(),
+  },
+  gendered: true,
+);
+```
+
+Use custom axes for any other variant:
+
+```dart
+final cta = StringLocale(
+  '{name}, your workspace is ready',
+  id: 'workspace_ready',
+  params: {'name': Param.literal()},
+  axes: {
+    'audience': ['buyer', 'seller'],
+  },
+  required: ['audience'],
+);
+```
+
+Enum translations are additive by default. For example, `gender(2) + status(3) + category(5)` means 10 drafted cells, not 30. Use `inline: true` only when grammar needs the enum value inside the template variant.
+
+## Runtime Behavior
+
+The runtime is offline by default. It does not call an LLM, translation API, or remote service while your app runs; it only resolves already-compiled JSON.
+
+Runtime behavior includes:
+
+- split bundle loading from `manifest.json`
+- combined bundle loading
+- locale fallback chains such as `ne-NP -> ne -> source`
+- custom fallback chains such as `pt-BR -> pt -> es`
+- plural category selection
+- enum substitution
+- inline cross-product template selection
+- native digit conversion for supported locales
+- date, currency, number, and relative formatting
+- optional `userAdapted` adapter calls
+
+LLM-drafted translations are written to plain JSON, so you can review, diff, and version them like any other build artifact before shipping.
+
+## Examples
+
+Console sample:
 
 ```bash
-cd stringlocale_demo
-dart run lib/compile.dart
+dart run example/main.dart
 ```
 
-To run the Flutter demo:
+Flutter macOS sample:
 
 ```bash
-cd stringlocale_demo
-flutter run -d macos --dart-define=OPENROUTER_API_KEY=$OPENROUTER_API_KEY
+cd example
+flutter run -d macos
 ```
 
-The demo includes a runtime translation section where you can type a visitor region and see the `ParamKind.translatable` value translated for the selected non-English locale. English passes the value through because the source value is already English.
-
-## Translation dashboard
-
-Open `dashboard.html` in a browser. It is a standalone static page with no backend. You can:
-
-- load compiled locale JSON
-- inspect keys across locales
-- edit translations inline
-- export one override file per edited locale, compatible with `locales/overrides/<code>.json`
-
-## Troubleshooting
-
-### My UI stays in English
-
-Check these first:
-
-- the active `localeCode` is not `en`
-- `StringLocaleScope` is wrapping the subtree that renders `Tr`
-- the locale JSON was loaded into `Renderer`
-- the message key exists in the compiled JSON
-
-### `OPENROUTER_API_KEY is not set`
-
-Set the environment variable before compile or runtime calls that need LLM access:
+Regenerate the Flutter sample assets:
 
 ```bash
-export OPENROUTER_API_KEY=sk-or-...
+dart run stringlocale compile \
+  --input example/lib/flutter_strings.dart \
+  --register registerFlutterSampleStrings \
+  --locales en-US,hi-IN,ne-NP,nl-NL,fr-FR,ru-RU \
+  --source-locale en-US \
+  --out example/assets/i18n \
+  --drafter offline
 ```
 
-For Flutter apps, especially when launching from tooling that may not pass shell
-environment variables through to the app process, use `--dart-define`:
+CLI help:
 
 ```bash
-flutter run -d macos --dart-define=OPENROUTER_API_KEY=$OPENROUTER_API_KEY
+dart run stringlocale --help
 ```
 
-### Compile keeps skipping my key
+## Develop
 
-That means the source string hash has not changed. If you need a full regeneration, run with `force: true` in your compile script.
+```bash
+dart format .
+flutter analyze
+flutter test
+dart pub publish --dry-run
+```
 
-### My placeholder disappeared in a translation
 
-The compiler validates placeholders and throws if a translated string drops one unexpectedly. Keep placeholders exactly as `{name}` in your English source.
+For the example app:
 
-### `languageName` is required
+```bash
+cd example
+flutter analyze
+flutter test
+flutter build macos --debug
+```
 
-That only applies when rendering a non-English message with `translatable` or `userAdapted` params. Pass `languageName` to `render(...)`, or use `StringLocaleScope` in Flutter so the widget layer supplies it.
+## Notes
 
-### I need custom calendars or domain-specific formatting
-
-Preformat those values yourself and pass them as `literal` or `user`. `stringlocale` is intentionally strict about what it formats automatically.
-
-## API overview
-
-Main exports from `package:stringlocale/stringlocale.dart`:
-
-- `Message`, `Param`, `ParamKind`
-- `staticText()`, `t()`, `dynamicText()`, `message()`, `dynamic_()`, `pluralText()`, `plural()`
-- `Registry`
-- `Renderer`
-- `compileLocales()`
-- `formatNumber()`, `formatDateValue()`, `formatCurrencyValue()`, `formatRelativeValue()`
-- `PluralRuleEvaluator`
-
-Additional Flutter exports from `package:stringlocale/stringlocale_flutter.dart`:
-
-- `StringLocaleScope`
-- `Tr`
-- `trAsync()`
+- Dates use `package:intl` and Gregorian calendars. For custom calendars, pre-format and pass as `Param.literal()`.
+- The model class is `StringLocale`; Flutter's `Text` widget is unaffected. The Flutter widget provided by this package is `Tr`.
+- `userAdapted` is the only kind that can touch custom runtime adaptation logic, and only if you pass an adapter to `Bundle`.
+- Plural categories are generated from CLDR data during package maintenance, then resolved from committed Dart data at runtime.
 
 ## License
 

@@ -1,13 +1,17 @@
 name: stringlocale
-description: Compile-time LLM localization for Dart and Flutter. Define strings once with typed params, generate locale JSON at build time, translate dynamic values at runtime via OpenRouter.
-version: 0.2.0
-repository: https://github.com/ssilwal29/stringlocale-flutter.git
+description: Declare strings with typed params, compile to offline locale bundles with an LLM, and resolve by locale at runtime. Axis-model i18n for Dart and Flutter.
+version: 0.3.0
+repository: https://github.com/ssilwal29/stringlocale-flutter
+homepage: https://github.com/ssilwal29/stringlocale-flutter
 topics:
+  - internationalization
   - localization
   - i18n
+  - translation
   - flutter
-  - dart
-  - llm
+
+executables:
+  stringlocale:
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -23,4 +27,4 @@ dev_dependencies:
   test: ^1.24.0
   flutter_test:
     sdk: flutter
-  flutter_lints: ^6.0.0
+  flutter_lints: ^3.0.0

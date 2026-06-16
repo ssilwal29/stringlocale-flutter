@@ -1,2 +1,12 @@
-stringlocale_demo/
+.dart_tool/
+.venv/
+.packages
 build/
+dist/
+example/dist/
+example/.idea/
+example/*.iml
+pubspec.lock
+.flutter-plugins
+.flutter-plugins-dependencies
+.DS_Store

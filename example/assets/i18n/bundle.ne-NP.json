@@ -1,0 +1,223 @@
+{
+  "version": 1,
+  "locale": "ne-NP",
+  "source_locale": "en-US",
+  "translation": {
+    "drafter": "openrouter",
+    "model": "google/gemini-2.5-flash"
+  },
+  "strings": {
+    "flutter_sample.title": {
+      "text": "Creator orders",
+      "axis_order": [],
+      "free_axes": {},
+      "plural_param": null,
+      "inlined_enums": [],
+      "enums": {},
+      "required": [],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [],
+        "date": {},
+        "currency": {},
+        "relative": []
+      },
+      "user_adapted": [],
+      "user_adapted_context": {},
+      "locale": "ne-NP",
+      "templates": {
+        "": "सिर्जनाकर्ताका अर्डरहरू"
+      },
+      "enum_values": {},
+      "cell_hashes": {
+        "": "17a0d75f4b7798dd"
+      },
+      "enum_hashes": {}
+    },
+    "flutter_sample.order_summary": {
+      "text": "{name} has {count} {status} orders totaling {total}",
+      "axis_order": [
+        "__plural__"
+      ],
+      "free_axes": {},
+      "plural_param": "count",
+      "inlined_enums": [],
+      "enums": {
+        "status": [
+          "approved",
+          "pending",
+          "rejected"
+        ]
+      },
+      "required": [],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [
+          "count"
+        ],
+        "date": {},
+        "currency": {
+          "total": "NPR"
+        },
+        "relative": []
+      },
+      "user_adapted": [],
+      "user_adapted_context": {},
+      "locale": "ne-NP",
+      "templates": {
+        "one": "{name} सँग जम्मा {total} को एउटा {status} अर्डर छ",
+        "other": "{name} सँग जम्मा {total} बराबरका {count} वटा {status} अर्डरहरू छन्"
+      },
+      "enum_values": {
+        "status": {
+          "approved": "अनुमोदित",
+          "pending": "बाँकी",
+          "rejected": "अस्वीकृत"
+        }
+      },
+      "cell_hashes": {
+        "one": "368761a5790cdf23",
+        "other": "293793433a61f57b"
+      },
+      "enum_hashes": {
+        "status": {
+          "approved": "47ce38770c0c6821",
+          "pending": "2b10bd0d7eaa0f24",
+          "rejected": "5b21697e74b85b5a"
+        }
+      }
+    },
+    "flutter_sample.next_payout": {
+      "text": "Next payout arrives on {date}",
+      "axis_order": [],
+      "free_axes": {},
+      "plural_param": null,
+      "inlined_enums": [],
+      "enums": {},
+      "required": [],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [],
+        "date": {
+          "date": "long"
+        },
+        "currency": {},
+        "relative": []
+      },
+      "user_adapted": [],
+      "user_adapted_context": {},
+      "locale": "ne-NP",
+      "templates": {
+        "": "अर्को भुक्तानी {date} मा आउँछ"
+      },
+      "enum_values": {},
+      "cell_hashes": {
+        "": "0c786f7a7bb24c09"
+      },
+      "enum_hashes": {}
+    },
+    "flutter_sample.audience_message": {
+      "text": "{name}, your {tier} workspace is ready",
+      "axis_order": [
+        "audience",
+        "tier"
+      ],
+      "free_axes": {
+        "audience": [
+          "buyer",
+          "seller"
+        ]
+      },
+      "plural_param": null,
+      "inlined_enums": [
+        "tier"
+      ],
+      "enums": {},
+      "required": [
+        "audience"
+      ],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [],
+        "date": {},
+        "currency": {},
+        "relative": []
+      },
+      "user_adapted": [],
+      "user_adapted_context": {},
+      "locale": "ne-NP",
+      "templates": {
+        "buyer|standard": "{name}, तपाईंको {tier} कार्यस्थान तयार छ",
+        "buyer|gold": "{name}, तपाईंको गोल्ड कार्यक्षेत्र तयार छ",
+        "seller|standard": "{name}, तपाईंको मानक कार्यस्थान तयार छ",
+        "seller|gold": "{name}, तपाईंको गोल्ड कार्यस्थान तयार छ"
+      },
+      "enum_values": {},
+      "cell_hashes": {
+        "buyer|standard": "248aa794336efe3a",
+        "buyer|gold": "47973c6544256029",
+        "seller|standard": "1cd5dd123dae1169",
+        "seller|gold": "6d296a9f1a823b92"
+      },
+      "enum_hashes": {}
+    },
+    "flutter_sample.snackbar": {
+      "text": "Saved locale {locale}",
+      "axis_order": [],
+      "free_axes": {},
+      "plural_param": null,
+      "inlined_enums": [],
+      "enums": {},
+      "required": [],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [],
+        "date": {},
+        "currency": {},
+        "relative": []
+      },
+      "user_adapted": [],
+      "user_adapted_context": {},
+      "locale": "ne-NP",
+      "templates": {
+        "": "स्थानीयकरण {locale} सुरक्षित गरियो"
+      },
+      "enum_values": {},
+      "cell_hashes": {
+        "": "064917833f4f5036"
+      },
+      "enum_hashes": {}
+    },
+    "flutter_sample.user_adapted_preview": {
+      "text": "Shopper preview: {note}",
+      "axis_order": [],
+      "free_axes": {},
+      "plural_param": null,
+      "inlined_enums": [],
+      "enums": {},
+      "required": [],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [],
+        "date": {},
+        "currency": {},
+        "relative": []
+      },
+      "user_adapted": [
+        "note"
+      ],
+      "user_adapted_context": {
+        "note": "Friendly short note shown to shoppers in product cards"
+      },
+      "locale": "ne-NP",
+      "templates": {
+        "": "खरिदकर्ता पूर्वावलोकन: {note}"
+      },
+      "enum_values": {},
+      "cell_hashes": {
+        "": "023cece5213d12ce"
+      },
+      "enum_hashes": {}
+    }
+  }
+}

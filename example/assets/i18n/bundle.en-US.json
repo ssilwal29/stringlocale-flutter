@@ -1,0 +1,223 @@
+{
+  "version": 1,
+  "locale": "en-US",
+  "source_locale": "en-US",
+  "translation": {
+    "drafter": "openrouter",
+    "model": "google/gemini-2.5-flash"
+  },
+  "strings": {
+    "flutter_sample.title": {
+      "text": "Creator orders",
+      "axis_order": [],
+      "free_axes": {},
+      "plural_param": null,
+      "inlined_enums": [],
+      "enums": {},
+      "required": [],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [],
+        "date": {},
+        "currency": {},
+        "relative": []
+      },
+      "user_adapted": [],
+      "user_adapted_context": {},
+      "locale": "en-US",
+      "templates": {
+        "": "Creator orders"
+      },
+      "enum_values": {},
+      "cell_hashes": {
+        "": "7f19e7331fcf6665"
+      },
+      "enum_hashes": {}
+    },
+    "flutter_sample.order_summary": {
+      "text": "{name} has {count} {status} orders totaling {total}",
+      "axis_order": [
+        "__plural__"
+      ],
+      "free_axes": {},
+      "plural_param": "count",
+      "inlined_enums": [],
+      "enums": {
+        "status": [
+          "approved",
+          "pending",
+          "rejected"
+        ]
+      },
+      "required": [],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [
+          "count"
+        ],
+        "date": {},
+        "currency": {
+          "total": "NPR"
+        },
+        "relative": []
+      },
+      "user_adapted": [],
+      "user_adapted_context": {},
+      "locale": "en-US",
+      "templates": {
+        "one": "{name} has {count} {status} order totaling {total}",
+        "other": "{name} has {count} {status} orders totaling {total}"
+      },
+      "enum_values": {
+        "status": {
+          "approved": "Approved",
+          "pending": "Pending",
+          "rejected": "Rejected"
+        }
+      },
+      "cell_hashes": {
+        "one": "2356af7942442bf3",
+        "other": "0cffab970675b4ab"
+      },
+      "enum_hashes": {
+        "status": {
+          "approved": "791d3f0b69328591",
+          "pending": "550847d12abfe364",
+          "rejected": "39c491aa15ebf202"
+        }
+      }
+    },
+    "flutter_sample.next_payout": {
+      "text": "Next payout arrives on {date}",
+      "axis_order": [],
+      "free_axes": {},
+      "plural_param": null,
+      "inlined_enums": [],
+      "enums": {},
+      "required": [],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [],
+        "date": {
+          "date": "long"
+        },
+        "currency": {},
+        "relative": []
+      },
+      "user_adapted": [],
+      "user_adapted_context": {},
+      "locale": "en-US",
+      "templates": {
+        "": "Next payout arrives on {date}"
+      },
+      "enum_values": {},
+      "cell_hashes": {
+        "": "53fe57d63ed46a49"
+      },
+      "enum_hashes": {}
+    },
+    "flutter_sample.audience_message": {
+      "text": "{name}, your {tier} workspace is ready",
+      "axis_order": [
+        "audience",
+        "tier"
+      ],
+      "free_axes": {
+        "audience": [
+          "buyer",
+          "seller"
+        ]
+      },
+      "plural_param": null,
+      "inlined_enums": [
+        "tier"
+      ],
+      "enums": {},
+      "required": [
+        "audience"
+      ],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [],
+        "date": {},
+        "currency": {},
+        "relative": []
+      },
+      "user_adapted": [],
+      "user_adapted_context": {},
+      "locale": "en-US",
+      "templates": {
+        "buyer|standard": "{name}, your Standard workspace is ready",
+        "buyer|gold": "{name}, your Gold workspace is ready",
+        "seller|standard": "{name}, your Standard workspace is ready",
+        "seller|gold": "{name}, your Gold seller workspace is ready"
+      },
+      "enum_values": {},
+      "cell_hashes": {
+        "buyer|standard": "02d7625064dbb8aa",
+        "buyer|gold": "507c5e391804ffe9",
+        "seller|standard": "6fc944be744b2e29",
+        "seller|gold": "1899c4737f462e82"
+      },
+      "enum_hashes": {}
+    },
+    "flutter_sample.snackbar": {
+      "text": "Saved locale {locale}",
+      "axis_order": [],
+      "free_axes": {},
+      "plural_param": null,
+      "inlined_enums": [],
+      "enums": {},
+      "required": [],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [],
+        "date": {},
+        "currency": {},
+        "relative": []
+      },
+      "user_adapted": [],
+      "user_adapted_context": {},
+      "locale": "en-US",
+      "templates": {
+        "": "Saved locale {locale}"
+      },
+      "enum_values": {},
+      "cell_hashes": {
+        "": "01f00dd71ad8192e"
+      },
+      "enum_hashes": {}
+    },
+    "flutter_sample.user_adapted_preview": {
+      "text": "Shopper preview: {note}",
+      "axis_order": [],
+      "free_axes": {},
+      "plural_param": null,
+      "inlined_enums": [],
+      "enums": {},
+      "required": [],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [],
+        "date": {},
+        "currency": {},
+        "relative": []
+      },
+      "user_adapted": [
+        "note"
+      ],
+      "user_adapted_context": {
+        "note": "Friendly short note shown to shoppers in product cards"
+      },
+      "locale": "en-US",
+      "templates": {
+        "": "Shopper preview: {note}"
+      },
+      "enum_values": {},
+      "cell_hashes": {
+        "": "0b220eb9755f6e06"
+      },
+      "enum_hashes": {}
+    }
+  }
+}

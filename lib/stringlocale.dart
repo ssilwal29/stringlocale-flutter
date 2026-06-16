@@ -1,40 +1,68 @@
-/// stringlocale — compile-time LLM localization for Dart.
+/// stringlocale — declare strings with typed params, compile to offline locale
+/// bundles, resolve by locale at runtime.
 ///
-/// This library is pure Dart with no Flutter dependency. For Flutter widget
-/// integration ([StringLocaleScope], [Tr]), import
-/// `package:stringlocale/stringlocale_flutter.dart` instead.
+/// Pure-Dart core (no Flutter). For Flutter widgets, import
+/// `package:stringlocale/flutter.dart`.
 library;
 
-export 'src/text.dart'
+import 'src/runtime/bundle.dart';
+import 'src/runtime/io_file_reader_stub.dart'
+    if (dart.library.io) 'src/runtime/io_file_reader_io.dart' as io_reader;
+import 'src/runtime/string.dart';
+
+export 'src/runtime/params.dart' show Param, ParamKind;
+export 'src/runtime/string.dart'
     show
-        Message,
-        Param,
-        ParamKind,
-        staticText,
-        t,
-        dynamicText,
-        message,
-        dynamic_,
-        pluralText,
-        plural,
-        pluralSep,
-        extractPlaceholders;
-export 'src/registry.dart' show Registry;
-export 'src/renderer.dart' show Renderer;
-export 'src/compiler.dart' show compileLocales;
-export 'src/formatters.dart'
+        StringLocale,
+        setLocale,
+        getLocale,
+        useBundle,
+        currentBundle,
+        getRegistry,
+        clearRegistry;
+export 'src/runtime/bundle.dart'
     show
-        formatNumber,
+        Bundle,
+        Adapter,
+        AsyncAdapter,
+        UserAdaptedMode,
+        FileReader,
+        MissingRequiredAxis,
+        StringNotFound,
+        pluralToken;
+export 'src/runtime/plural_rules.dart' show pluralCategory, pluralCategories;
+export 'src/runtime/formatters.dart'
+    show
+        convertDigits,
         formatDateValue,
         formatCurrencyValue,
         formatRelativeValue;
-export 'src/plural_rule.dart' show PluralRuleEvaluator;
-export 'src/llm.dart'
-    show
-        defaultModel,
-        callOpenRouter,
-        translateString,
-        translatePlural,
-        translateValue,
-        adaptFreeText,
-        PluralTranslation;
+
+/// Read a file with dart:io (VM / Flutter mobile+desktop). On web, pass your
+/// own FileReader (e.g. backed by rootBundle) to Bundle.fromDir.
+String? ioFileReader(String path) {
+  return io_reader.ioFileReader(path);
+}
+
+/// Convenience: load a compiled bundle directory using dart:io and make it the
+/// active bundle. Mirrors the Python `load("dist")`.
+Bundle load(
+  String directory, {
+  String? locale,
+  AsyncAdapter? asyncAdapter,
+  UserAdaptedMode userAdaptedMode = UserAdaptedMode.cached,
+  Map<String, List<String>>? fallbacks,
+  Adapter? adapter,
+}) {
+  final bundle = Bundle.fromDir(
+    directory,
+    ioFileReader,
+    locales: locale != null ? [locale] : null,
+    asyncAdapter: asyncAdapter,
+    userAdaptedMode: userAdaptedMode,
+    fallbacks: fallbacks,
+    adapter: adapter,
+  );
+  useBundle(bundle, locale: locale);
+  return bundle;
+}

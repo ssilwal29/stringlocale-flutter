@@ -1,0 +1,223 @@
+{
+  "version": 1,
+  "locale": "nl-NL",
+  "source_locale": "en-US",
+  "translation": {
+    "drafter": "openrouter",
+    "model": "google/gemini-2.5-flash"
+  },
+  "strings": {
+    "flutter_sample.title": {
+      "text": "Creator orders",
+      "axis_order": [],
+      "free_axes": {},
+      "plural_param": null,
+      "inlined_enums": [],
+      "enums": {},
+      "required": [],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [],
+        "date": {},
+        "currency": {},
+        "relative": []
+      },
+      "user_adapted": [],
+      "user_adapted_context": {},
+      "locale": "nl-NL",
+      "templates": {
+        "": "Creatorbestellingen"
+      },
+      "enum_values": {},
+      "cell_hashes": {
+        "": "105123e8724fbe90"
+      },
+      "enum_hashes": {}
+    },
+    "flutter_sample.order_summary": {
+      "text": "{name} has {count} {status} orders totaling {total}",
+      "axis_order": [
+        "__plural__"
+      ],
+      "free_axes": {},
+      "plural_param": "count",
+      "inlined_enums": [],
+      "enums": {
+        "status": [
+          "approved",
+          "pending",
+          "rejected"
+        ]
+      },
+      "required": [],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [
+          "count"
+        ],
+        "date": {},
+        "currency": {
+          "total": "NPR"
+        },
+        "relative": []
+      },
+      "user_adapted": [],
+      "user_adapted_context": {},
+      "locale": "nl-NL",
+      "templates": {
+        "one": "{name} heeft {count} {status} bestelling ter waarde van {total}",
+        "other": "{name} heeft {count} {status} bestellingen met een totaalbedrag van {total}"
+      },
+      "enum_values": {
+        "status": {
+          "approved": "Goedgekeurd",
+          "pending": "In behandeling",
+          "rejected": "afgewezen"
+        }
+      },
+      "cell_hashes": {
+        "one": "4421351e390d97d2",
+        "other": "398b281451935b1a"
+      },
+      "enum_hashes": {
+        "status": {
+          "approved": "5041ee3a7c5ae86e",
+          "pending": "6f1806d83163b033",
+          "rejected": "3e8a05ab77b0d28d"
+        }
+      }
+    },
+    "flutter_sample.next_payout": {
+      "text": "Next payout arrives on {date}",
+      "axis_order": [],
+      "free_axes": {},
+      "plural_param": null,
+      "inlined_enums": [],
+      "enums": {},
+      "required": [],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [],
+        "date": {
+          "date": "long"
+        },
+        "currency": {},
+        "relative": []
+      },
+      "user_adapted": [],
+      "user_adapted_context": {},
+      "locale": "nl-NL",
+      "templates": {
+        "": "Volgende uitbetaling op {date}"
+      },
+      "enum_values": {},
+      "cell_hashes": {
+        "": "39143591092ad92c"
+      },
+      "enum_hashes": {}
+    },
+    "flutter_sample.audience_message": {
+      "text": "{name}, your {tier} workspace is ready",
+      "axis_order": [
+        "audience",
+        "tier"
+      ],
+      "free_axes": {
+        "audience": [
+          "buyer",
+          "seller"
+        ]
+      },
+      "plural_param": null,
+      "inlined_enums": [
+        "tier"
+      ],
+      "enums": {},
+      "required": [
+        "audience"
+      ],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [],
+        "date": {},
+        "currency": {},
+        "relative": []
+      },
+      "user_adapted": [],
+      "user_adapted_context": {},
+      "locale": "nl-NL",
+      "templates": {
+        "buyer|standard": "{name}, je standaard werkruimte is klaar",
+        "buyer|gold": "{name}, uw Gold-werkruimte is klaar",
+        "seller|standard": "{name}, je standaard werkruimte is klaar",
+        "seller|gold": "{name}, je Gold-werkruimte is klaar"
+      },
+      "enum_values": {},
+      "cell_hashes": {
+        "buyer|standard": "4ff8acb329a0b9eb",
+        "buyer|gold": "4bc952de44f52d4c",
+        "seller|standard": "35d42c4950d6d58c",
+        "seller|gold": "2aded22877102a93"
+      },
+      "enum_hashes": {}
+    },
+    "flutter_sample.snackbar": {
+      "text": "Saved locale {locale}",
+      "axis_order": [],
+      "free_axes": {},
+      "plural_param": null,
+      "inlined_enums": [],
+      "enums": {},
+      "required": [],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [],
+        "date": {},
+        "currency": {},
+        "relative": []
+      },
+      "user_adapted": [],
+      "user_adapted_context": {},
+      "locale": "nl-NL",
+      "templates": {
+        "": "Opgeslagen landinstelling {locale}"
+      },
+      "enum_values": {},
+      "cell_hashes": {
+        "": "7f9514541d1842f7"
+      },
+      "enum_hashes": {}
+    },
+    "flutter_sample.user_adapted_preview": {
+      "text": "Shopper preview: {note}",
+      "axis_order": [],
+      "free_axes": {},
+      "plural_param": null,
+      "inlined_enums": [],
+      "enums": {},
+      "required": [],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [],
+        "date": {},
+        "currency": {},
+        "relative": []
+      },
+      "user_adapted": [
+        "note"
+      ],
+      "user_adapted_context": {
+        "note": "Friendly short note shown to shoppers in product cards"
+      },
+      "locale": "nl-NL",
+      "templates": {
+        "": "Voorbeeldweergave voor koper: {note}"
+      },
+      "enum_values": {},
+      "cell_hashes": {
+        "": "066f035e6953eabf"
+      },
+      "enum_hashes": {}
+    }
+  }
+}

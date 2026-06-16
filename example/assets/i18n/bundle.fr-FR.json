@@ -1,0 +1,225 @@
+{
+  "version": 1,
+  "locale": "fr-FR",
+  "source_locale": "en-US",
+  "translation": {
+    "drafter": "openrouter",
+    "model": "google/gemini-2.5-flash"
+  },
+  "strings": {
+    "flutter_sample.title": {
+      "text": "Creator orders",
+      "axis_order": [],
+      "free_axes": {},
+      "plural_param": null,
+      "inlined_enums": [],
+      "enums": {},
+      "required": [],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [],
+        "date": {},
+        "currency": {},
+        "relative": []
+      },
+      "user_adapted": [],
+      "user_adapted_context": {},
+      "locale": "fr-FR",
+      "templates": {
+        "": "Commandes du créateur"
+      },
+      "enum_values": {},
+      "cell_hashes": {
+        "": "6f39cc540864e3a0"
+      },
+      "enum_hashes": {}
+    },
+    "flutter_sample.order_summary": {
+      "text": "{name} has {count} {status} orders totaling {total}",
+      "axis_order": [
+        "__plural__"
+      ],
+      "free_axes": {},
+      "plural_param": "count",
+      "inlined_enums": [],
+      "enums": {
+        "status": [
+          "approved",
+          "pending",
+          "rejected"
+        ]
+      },
+      "required": [],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [
+          "count"
+        ],
+        "date": {},
+        "currency": {
+          "total": "NPR"
+        },
+        "relative": []
+      },
+      "user_adapted": [],
+      "user_adapted_context": {},
+      "locale": "fr-FR",
+      "templates": {
+        "one": "{name} a {count} commande {status} pour un total de {total}",
+        "many": "{name} a {count} commandes {status} pour un total de {total}",
+        "other": "{name} a {count} commandes {status} pour un total de {total}"
+      },
+      "enum_values": {
+        "status": {
+          "approved": "Approuvé",
+          "pending": "En attente",
+          "rejected": "Rejeté"
+        }
+      },
+      "cell_hashes": {
+        "one": "68b87b5a463d1a92",
+        "many": "057e4ad70c126d84",
+        "other": "37d6cf70324fcc1a"
+      },
+      "enum_hashes": {
+        "status": {
+          "approved": "6f868c86730a395a",
+          "pending": "3be503b438e17393",
+          "rejected": "1445ddd3147bb9bd"
+        }
+      }
+    },
+    "flutter_sample.next_payout": {
+      "text": "Next payout arrives on {date}",
+      "axis_order": [],
+      "free_axes": {},
+      "plural_param": null,
+      "inlined_enums": [],
+      "enums": {},
+      "required": [],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [],
+        "date": {
+          "date": "long"
+        },
+        "currency": {},
+        "relative": []
+      },
+      "user_adapted": [],
+      "user_adapted_context": {},
+      "locale": "fr-FR",
+      "templates": {
+        "": "Le prochain paiement arrive le {date}"
+      },
+      "enum_values": {},
+      "cell_hashes": {
+        "": "6f1221897163fb8c"
+      },
+      "enum_hashes": {}
+    },
+    "flutter_sample.audience_message": {
+      "text": "{name}, your {tier} workspace is ready",
+      "axis_order": [
+        "audience",
+        "tier"
+      ],
+      "free_axes": {
+        "audience": [
+          "buyer",
+          "seller"
+        ]
+      },
+      "plural_param": null,
+      "inlined_enums": [
+        "tier"
+      ],
+      "enums": {},
+      "required": [
+        "audience"
+      ],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [],
+        "date": {},
+        "currency": {},
+        "relative": []
+      },
+      "user_adapted": [],
+      "user_adapted_context": {},
+      "locale": "fr-FR",
+      "templates": {
+        "buyer|standard": "{name}, votre espace de travail Standard est prêt",
+        "buyer|gold": "{name}, votre espace de travail Gold est prêt",
+        "seller|standard": "{name}, votre espace de travail Standard est prêt",
+        "seller|gold": "{name}, votre espace de travail Gold est prêt"
+      },
+      "enum_values": {},
+      "cell_hashes": {
+        "buyer|standard": "6939f97b779d2d3f",
+        "buyer|gold": "0039b81a2d5fa72c",
+        "seller|standard": "75c96cc13c519e6c",
+        "seller|gold": "620374947ad65d27"
+      },
+      "enum_hashes": {}
+    },
+    "flutter_sample.snackbar": {
+      "text": "Saved locale {locale}",
+      "axis_order": [],
+      "free_axes": {},
+      "plural_param": null,
+      "inlined_enums": [],
+      "enums": {},
+      "required": [],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [],
+        "date": {},
+        "currency": {},
+        "relative": []
+      },
+      "user_adapted": [],
+      "user_adapted_context": {},
+      "locale": "fr-FR",
+      "templates": {
+        "": "Paramètres régionaux enregistrés : {locale}"
+      },
+      "enum_values": {},
+      "cell_hashes": {
+        "": "53fc51b0061ad13b"
+      },
+      "enum_hashes": {}
+    },
+    "flutter_sample.user_adapted_preview": {
+      "text": "Shopper preview: {note}",
+      "axis_order": [],
+      "free_axes": {},
+      "plural_param": null,
+      "inlined_enums": [],
+      "enums": {},
+      "required": [],
+      "digit_conversion": true,
+      "fmt": {
+        "number": [],
+        "date": {},
+        "currency": {},
+        "relative": []
+      },
+      "user_adapted": [
+        "note"
+      ],
+      "user_adapted_context": {
+        "note": "Friendly short note shown to shoppers in product cards"
+      },
+      "locale": "fr-FR",
+      "templates": {
+        "": "Aperçu acheteur : {note}"
+      },
+      "enum_values": {},
+      "cell_hashes": {
+        "": "3adf689a2595dce3"
+      },
+      "enum_hashes": {}
+    }
+  }
+}

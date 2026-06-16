@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "source_locale": "en-US",
+  "locales": [
+    "en-US",
+    "hi-IN",
+    "ne-NP",
+    "nl-NL",
+    "fr-FR",
+    "ru-RU"
+  ],
+  "translation": {
+    "drafter": "openrouter",
+    "model": "google/gemini-2.5-flash"
+  },
+  "files": {
+    "en-US": {
+      "path": "bundle.en-US.json",
+      "hash": "7d79f21c4d04b410"
+    },
+    "hi-IN": {
+      "path": "bundle.hi-IN.json",
+      "hash": "7a3dd5cf29363ddc"
+    },
+    "ne-NP": {
+      "path": "bundle.ne-NP.json",
+      "hash": "5146291650513f85"
+    },
+    "nl-NL": {
+      "path": "bundle.nl-NL.json",
+      "hash": "3d3bf0ae0d93c591"
+    },
+    "fr-FR": {
+      "path": "bundle.fr-FR.json",
+      "hash": "3eafacea7414c9d3"
+    },
+    "ru-RU": {
+      "path": "bundle.ru-RU.json",
+      "hash": "0ac7d22059393011"
+    }
+  }
+}
