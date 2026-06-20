@@ -7,7 +7,10 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 const String defaultModel = 'google/gemini-2.5-flash';
-const String _openRouterUrl = 'https://openrouter.ai/api/v1/chat/completions';
+
+/// Default endpoint (OpenRouter). Any OpenAI-compatible
+/// `/chat/completions` endpoint works — see [LlmDrafter].
+const String defaultBaseUrl = 'https://openrouter.ai/api/v1/chat/completions';
 
 abstract class Drafter {
   String draftTemplate(String baseText, String locale, String language,
@@ -35,37 +38,68 @@ class OfflineDrafter implements Drafter {
   }
 }
 
-/// OpenRouter-backed drafter (synchronous via blocking HTTP through a helper).
+/// LLM-backed drafter for any OpenAI-compatible `/chat/completions` API
+/// (OpenRouter, OpenAI, Groq, Together, a local Ollama/LM Studio server, etc.).
+///
+/// Configure the endpoint and credentials via constructor arguments or
+/// environment variables:
+/// - `baseUrl`  → `STRINGLOCALE_BASE_URL` (falls back to OpenRouter)
+/// - `apiKey`   → `STRINGLOCALE_API_KEY` then `OPENROUTER_API_KEY`
+///
 /// Note: Dart HTTP is async; the compiler awaits these, so this exposes async
-/// variants. The Drafter interface stays sync for the offline path; the
-/// async OpenRouter calls are used by the async compiler entry points.
-class OpenRouterDrafter {
-  OpenRouterDrafter(
-      {this.model = defaultModel, this.apiKey, http.Client? client})
-      : _client = client ?? http.Client();
+/// variants. The [Drafter] interface stays sync for the offline path; the
+/// async LLM calls are used by the async compiler entry points.
+class LlmDrafter {
+  LlmDrafter({
+    this.model = defaultModel,
+    this.apiKey,
+    this.baseUrl,
+    Map<String, String>? headers,
+    http.Client? client,
+  })  : _extraHeaders = headers,
+        _client = client ?? http.Client();
 
   final String model;
   final String? apiKey;
+
+  /// Endpoint URL. When null, resolved from `STRINGLOCALE_BASE_URL` /
+  /// `OPENROUTER_BASE_URL`, defaulting to [defaultBaseUrl].
+  final String? baseUrl;
+
+  final Map<String, String>? _extraHeaders;
   final http.Client _client;
 
+  String _resolveBaseUrl() {
+    if (baseUrl != null && baseUrl!.isNotEmpty) return baseUrl!;
+    final env = Platform.environment['STRINGLOCALE_BASE_URL'] ??
+        Platform.environment['OPENROUTER_BASE_URL'] ??
+        '';
+    return env.isNotEmpty ? env : defaultBaseUrl;
+  }
+
   String _key() {
-    final k = apiKey ?? Platform.environment['OPENROUTER_API_KEY'] ?? '';
+    final k = apiKey ??
+        Platform.environment['STRINGLOCALE_API_KEY'] ??
+        Platform.environment['OPENROUTER_API_KEY'] ??
+        '';
     if (k.isEmpty) {
       throw StateError(
-          'OPENROUTER_API_KEY not set. https://openrouter.ai/keys');
+          'No LLM API key set. Provide apiKey or set STRINGLOCALE_API_KEY '
+          '(or OPENROUTER_API_KEY).');
     }
     return k;
   }
 
-  Future<String> _call(String prompt) async {
-    final res = await _client.post(
-      Uri.parse(_openRouterUrl),
-      headers: {
+  Map<String, String> _headers() => {
         'Authorization': 'Bearer ${_key()}',
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://github.com/stringlocale/stringlocale',
-        'X-Title': 'stringlocale',
-      },
+        ...?_extraHeaders,
+      };
+
+  Future<String> _call(String prompt) async {
+    final res = await _client.post(
+      Uri.parse(_resolveBaseUrl()),
+      headers: _headers(),
       body: jsonEncode({
         'model': model,
         'messages': [
@@ -76,7 +110,7 @@ class OpenRouterDrafter {
       }),
     );
     if (res.statusCode != 200) {
-      throw HttpException('OpenRouter error ${res.statusCode}: ${res.body}');
+      throw HttpException('LLM API error ${res.statusCode}: ${res.body}');
     }
     final body = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
     return (body['choices'][0]['message']['content'] as String).trim();
@@ -121,4 +155,18 @@ Rules:
   }
 
   void close() => _client.close();
+}
+
+/// OpenRouter-flavored [LlmDrafter]: defaults the endpoint to OpenRouter and
+/// sends OpenRouter's optional attribution headers. Kept for backward
+/// compatibility — [LlmDrafter] works with any OpenAI-compatible API.
+class OpenRouterDrafter extends LlmDrafter {
+  OpenRouterDrafter({super.model, super.apiKey, super.client})
+      : super(
+          baseUrl: defaultBaseUrl,
+          headers: const {
+            'HTTP-Referer': 'https://github.com/stringlocale/stringlocale',
+            'X-Title': 'stringlocale',
+          },
+        );
 }

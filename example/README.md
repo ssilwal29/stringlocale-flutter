@@ -24,8 +24,10 @@ export OPENROUTER_API_KEY=...your key...
 dart run example/user_adapted_openrouter.dart
 ```
 
-The async runtime now uses OpenRouter by default when `OPENROUTER_API_KEY` is set.
-The OpenRouter sample shows what users must provide for `userAdapted`:
+The async runtime uses the configured LLM by default when `STRINGLOCALE_API_KEY`
+(or `OPENROUTER_API_KEY`) is set. It targets OpenRouter by default; set
+`STRINGLOCALE_BASE_URL` to use any other OpenAI-compatible endpoint.
+The sample shows what users must provide for `userAdapted`:
 
 - A `Param.userAdapted(...)` declaration (context optional, recommended).
 - An `adapter` passed to `load(...)` or `Bundle(...)` only if you want to override the default.

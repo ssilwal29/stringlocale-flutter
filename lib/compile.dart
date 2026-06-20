@@ -6,4 +6,10 @@ export 'src/compile/compiler.dart'
     show compileAll, compileStrings, CompileResult, parseLocaleArg, slHash;
 export 'src/compile/check.dart' show check, prune, Report, PruneResult;
 export 'src/compile/llm.dart'
-    show Drafter, OfflineDrafter, OpenRouterDrafter, defaultModel;
+    show
+        Drafter,
+        OfflineDrafter,
+        LlmDrafter,
+        OpenRouterDrafter,
+        defaultModel,
+        defaultBaseUrl;

@@ -1,7 +1,13 @@
-/// OpenRouter-backed runtime adapter example for Param.userAdapted.
+/// LLM-backed runtime adapter example for Param.userAdapted.
+///
+/// Works with any OpenAI-compatible /chat/completions endpoint (OpenRouter,
+/// OpenAI, Groq, Together, a local Ollama/LM Studio server, etc.).
 ///
 /// Run from package root:
-///   export OPENROUTER_API_KEY=...your key...
+///   export STRINGLOCALE_API_KEY=...your key...
+///   # optional overrides:
+///   #   export STRINGLOCALE_BASE_URL=https://api.openai.com/v1/chat/completions
+///   #   export STRINGLOCALE_MODEL=gpt-4o-mini
 ///   dart run example/user_adapted_openrouter.dart
 ///
 /// What this shows:
@@ -18,16 +24,29 @@ import 'package:stringlocale/stringlocale.dart';
 import 'sample_strings.dart';
 
 const String _outDir = '.dart_tool/stringlocale_user_adapted_openrouter';
-const String _openRouterUrl = 'https://openrouter.ai/api/v1/chat/completions';
-const String _model = 'google/gemini-2.5-flash';
+const String _defaultBaseUrl =
+    'https://openrouter.ai/api/v1/chat/completions';
+const String _defaultModel = 'google/gemini-2.5-flash';
+
+String _env(List<String> names, [String fallback = '']) {
+  for (final name in names) {
+    final value = Platform.environment[name] ?? '';
+    if (value.isNotEmpty) return value;
+  }
+  return fallback;
+}
 
 Future<void> main() async {
-  final apiKey = Platform.environment['OPENROUTER_API_KEY'] ?? '';
+  final apiKey = _env(['STRINGLOCALE_API_KEY', 'OPENROUTER_API_KEY']);
   if (apiKey.isEmpty) {
-    stderr.writeln('OPENROUTER_API_KEY is required for this example.');
+    stderr.writeln('STRINGLOCALE_API_KEY (or OPENROUTER_API_KEY) is required '
+        'for this example.');
     exitCode = 64;
     return;
   }
+  final baseUrl =
+      _env(['STRINGLOCALE_BASE_URL', 'OPENROUTER_BASE_URL'], _defaultBaseUrl);
+  final model = _env(['STRINGLOCALE_MODEL', 'OPENROUTER_MODEL'], _defaultModel);
 
   sampleRegisterAll();
 
@@ -44,8 +63,10 @@ Future<void> main() async {
     _outDir,
     locale: 'ne-NP',
     userAdaptedMode: UserAdaptedMode.realtime,
-    adapter: (value, locale, context) => _openRouterAdapt(
+    adapter: (value, locale, context) => _llmAdapt(
       apiKey: apiKey,
+      baseUrl: baseUrl,
+      model: model,
       value: value,
       locale: locale,
       context: context,
@@ -69,8 +90,10 @@ Future<void> main() async {
 
 String _escapeJsonString(String value) => jsonEncode(value);
 
-String _openRouterAdapt({
+String _llmAdapt({
   required String apiKey,
+  required String baseUrl,
+  required String model,
   required String value,
   required String locale,
   required String? context,
@@ -86,7 +109,7 @@ Return only the rewritten text.
 ''';
 
   final body = '{'
-      '"model":"$_model",'
+      '"model":"$model",'
       '"messages":[{"role":"user","content":${_escapeJsonString(prompt)}}],'
       '"max_tokens":256,'
       '"temperature":0.2'
@@ -100,15 +123,11 @@ Return only the rewritten text.
       '45',
       '-X',
       'POST',
-      _openRouterUrl,
+      baseUrl,
       '-H',
       'Authorization: Bearer $apiKey',
       '-H',
       'Content-Type: application/json',
-      '-H',
-      'HTTP-Referer: https://github.com/ssilwal29/stringlocale-flutter',
-      '-H',
-      'X-Title: stringlocale userAdapted example',
       '-d',
       body,
     ],

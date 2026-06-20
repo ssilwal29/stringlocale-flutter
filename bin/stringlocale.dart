@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:stringlocale/compile.dart' show defaultModel;
+import 'package:stringlocale/compile.dart' show defaultModel, defaultBaseUrl;
 
 const _defaultInput = 'lib/strings.dart';
 const _defaultOut = 'dist';
@@ -42,18 +42,24 @@ Future<void> _compile(_Options options) async {
   final sourceLocale = options.value('source-locale') ?? 'en';
   final mode = options.value('drafter') ?? 'auto';
   final model = options.value('model');
+  final baseUrl = options.value('base-url');
   final quiet = options.flag('quiet');
-  if (!['auto', 'offline', 'openrouter'].contains(mode)) {
-    throw _CliException("--drafter must be one of: auto, offline, openrouter");
+  if (!['auto', 'offline', 'llm', 'openrouter'].contains(mode)) {
+    throw _CliException(
+        "--drafter must be one of: auto, offline, llm, openrouter");
   }
   if (mode == 'offline' && model != null) {
     throw _CliException(
-        '--model can only be used with --drafter openrouter or auto.');
+        '--model can only be used with --drafter llm, openrouter, or auto.');
+  }
+  if (mode == 'offline' && baseUrl != null) {
+    throw _CliException(
+        '--base-url can only be used with --drafter llm, openrouter, or auto.');
   }
 
   final combined = options.value('combined');
   final script = _runnerScript(options, '''
-  final drafter = ${_drafterExpression(mode, model)};
+  final drafter = ${_drafterExpression(mode, model, baseUrl)};
   final stringCount = getRegistry().length;
   ${quiet ? '' : "print('stringlocale: compiling \$stringCount strings for ${locales.length} locales...');"}
   ${quiet ? '' : "print('stringlocale: locales: ${locales.join(', ')}');"}
@@ -125,15 +131,20 @@ $body
 ''';
 }
 
-String _drafterExpression(String mode, String? model) {
-  final modelArg = model == null ? '' : 'model: ${jsonEncode(model)}';
+String _drafterExpression(String mode, String? model, String? baseUrl) {
+  final args = [
+    if (model != null) 'model: ${jsonEncode(model)}',
+    if (baseUrl != null) 'baseUrl: ${jsonEncode(baseUrl)}',
+  ].join(', ');
   switch (mode) {
     case 'offline':
       return 'OfflineDrafter()';
     case 'openrouter':
-      return 'OpenRouterDrafter($modelArg)';
+      return 'OpenRouterDrafter($args)';
+    case 'llm':
+      return 'LlmDrafter($args)';
     default:
-      return "Platform.environment.containsKey('OPENROUTER_API_KEY') ? OpenRouterDrafter($modelArg) : OfflineDrafter()";
+      return "(Platform.environment.containsKey('STRINGLOCALE_API_KEY') || Platform.environment.containsKey('OPENROUTER_API_KEY')) ? LlmDrafter($args) : OfflineDrafter()";
   }
 }
 
@@ -205,8 +216,10 @@ Options:
   --out <dir>            Bundle directory. Default: $_defaultOut
   --combined <path>      For compile, write one combined bundle instead of split files.
   --source-locale <code> Source locale for compile. Default: en
-  --drafter <mode>       auto, offline, or openrouter. Default: auto
-  --model <id>           OpenRouter model id. Default: $defaultModel
+  --drafter <mode>       auto, offline, llm, or openrouter. Default: auto
+  --model <id>           LLM model id. Default: $defaultModel
+  --base-url <url>       OpenAI-compatible chat-completions endpoint.
+                         Default: $defaultBaseUrl
   --force                Re-draft cells even when incremental hashes match.
   --dry-run              For prune, report removals without writing files.
   --quiet                For compile, hide progress messages except final output.
@@ -239,6 +252,7 @@ class _Options {
     'source-locale',
     'drafter',
     'model',
+    'base-url',
   };
 
   static const _flagOptions = {

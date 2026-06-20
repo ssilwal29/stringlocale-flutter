@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0
+
+- LLM drafting and runtime `userAdapted` adaptation now work with any
+  OpenAI-compatible `/chat/completions` endpoint (OpenRouter, OpenAI, Groq,
+  Together, local Ollama/LM Studio, etc.), not just OpenRouter.
+  - New `LlmDrafter` (generic) exported alongside the existing
+    `OpenRouterDrafter`, which remains as a backward-compatible subclass.
+  - New config via `STRINGLOCALE_API_KEY`, `STRINGLOCALE_BASE_URL`, and
+    `STRINGLOCALE_MODEL` (with `OPENROUTER_*` kept as fallbacks).
+  - CLI: new `--drafter llm` mode and `--base-url` option.
+
 ## 0.3.0
 
 Initial public release.

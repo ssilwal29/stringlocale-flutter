@@ -299,6 +299,9 @@ Map<String, Map<String, dynamic>> _loadExistingSplit(String? outDir) {
 
 String _drafterCacheKey(Object drafter) {
   if (drafter is OpenRouterDrafter) return 'openrouter:${drafter.model}';
+  if (drafter is LlmDrafter) {
+    return 'llm:${drafter.baseUrl ?? ''}:${drafter.model}';
+  }
   if (drafter is OfflineDrafter) return 'offline';
   return drafter.runtimeType.toString();
 }
@@ -306,6 +309,9 @@ String _drafterCacheKey(Object drafter) {
 Map<String, dynamic> _translationInfo(Object drafter) {
   if (drafter is OpenRouterDrafter) {
     return {'drafter': 'openrouter', 'model': drafter.model};
+  }
+  if (drafter is LlmDrafter) {
+    return {'drafter': 'llm', 'model': drafter.model};
   }
   if (drafter is OfflineDrafter) return {'drafter': 'offline'};
   return {'drafter': drafter.runtimeType.toString()};
@@ -329,7 +335,7 @@ Future<CompileResult> compileStrings({
   // Adapt either drafter type to async closures.
   Future<String> draftTemplate(
       String text, String loc, String lang, String desc, Set<String> ph) async {
-    if (d is OpenRouterDrafter) {
+    if (d is LlmDrafter) {
       return d.draftTemplate(text, loc, lang, desc, ph);
     }
     if (d is Drafter) return d.draftTemplate(text, loc, lang, desc, ph);
@@ -338,7 +344,7 @@ Future<CompileResult> compileStrings({
 
   Future<String> draftEnum(
       String v, String loc, String lang, String? ctx) async {
-    if (d is OpenRouterDrafter) return d.draftEnum(v, loc, lang, ctx);
+    if (d is LlmDrafter) return d.draftEnum(v, loc, lang, ctx);
     if (d is Drafter) return d.draftEnum(v, loc, lang, ctx);
     throw ArgumentError('Unknown drafter type');
   }

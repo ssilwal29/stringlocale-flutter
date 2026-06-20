@@ -3,55 +3,74 @@
 [![pub package](https://img.shields.io/pub/v/stringlocale.svg)](https://pub.dev/packages/stringlocale)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Your UI strings have parameters: a count, a name, a price, a date. Translating them is not just swapping words:
+Take a single app string: **"Welcome back, {name}! You have {count} new messages."**
 
-- Spanish needs gender agreement: `Bienvenido` vs `Bienvenida`.
-- Arabic has six plural forms and its own digits: `٥`, not `5`.
-- Nepali writes numbers in Devanagari: `१२००`, and pluralizes differently again.
+Shipping it correctly across five languages means dealing with all of this:
 
-Normally you hand-maintain every one of those variants, per language, in JSON files that drift from your Dart code. **stringlocale** flips it around: you declare each string once and tag every parameter with what it is: a number, a plural count, a currency, a date, a gendered subject, a literal name, or a translated enum. A build-time compiler then generates every axis variant, such as gender x plural x custom variants, for every target locale into static JSON bundles. At runtime your Dart or Flutter app just looks them up. No translation API call happens while the app is running.
+| Language | What your translators must maintain |
+|---|---|
+| **Spanish** | Gender agreement: *Bienvenido* (male) vs *Bienvenida* (female); *mensaje* vs *mensajes* |
+| **French** | Gender inflection in the greeting; *message* vs *messages* |
+| **Hindi** | Subject gender changes verb endings throughout the sentence |
+| **Arabic** | Six plural categories for *count* (zero, one, two, few, many, other) plus Eastern Arabic digits |
+| **Japanese** | No plurals, but formality register shapes every word choice |
 
-This package is the **Dart/Flutter runtime plus a CLI**: `compile`, `check`, and `prune`. The compiler writes plain JSON locale bundles, and the runtime reads them back in Dart or Flutter.
+For one string across five languages with gender × plural, that is roughly 50 hand-maintained translation keys — all of which break silently when you rename `{count}` to `{unread}`.
+
+**stringlocale** replaces all of that. Declare the string once in Dart, tag each `{placeholder}` with what it is, and run the compiler:
+
+```dart
+final welcome = StringLocale(
+  'Welcome back, {name}! You have {count} new messages.',
+  id: 'welcome',
+  params: {
+    'name': Param.literal(),
+    'count': Param.plural(),
+  },
+  gendered: true,
+);
+```
+
+```bash
+dart run stringlocale compile \
+  --locales es-ES,fr-FR,hi-IN,ja-JP,ar-SA \
+  --source-locale en-US \
+  --out assets/i18n
+```
+
+The compiler uses an LLM to generate every gender × plural variant per locale into static JSON. At runtime, resolving is a pure offline lookup — no API call, no network:
+
+```dart
+welcome.resolve(args: {'name': 'Sofia', 'count': 3, 'gender': 'female'})
+// Spanish → "¡Bienvenida, Sofia! Tienes 3 mensajes nuevos."
+// Arabic  → "مرحباً بعودتك، Sofia! لديك ٣ رسائل جديدة."
+// Hindi   → "वापसी पर स्वागत है, Sofia! आपके 3 नए संदेश हैं।"
+```
+
+This package is the **Dart/Flutter runtime plus a CLI**: `compile`, `check`, and `prune`.
 
 ## Quick Start
 
-**1. Install**
+**1. Add the dependency**
 
 ```yaml
 dependencies:
   stringlocale: ^0.3.0
 ```
 
-Import the runtime:
+**2. Import**
 
 ```dart
-import 'package:stringlocale/stringlocale.dart';
+import 'package:stringlocale/stringlocale.dart'; // runtime and declarations
+import 'package:stringlocale/flutter.dart';       // Flutter widgets (optional)
+import 'package:stringlocale/compile.dart';        // compiler API and build scripts
 ```
 
-For Flutter widgets:
-
-```dart
-import 'package:stringlocale/flutter.dart';
-```
-
-For build scripts, compiler APIs, and checks:
-
-```dart
-import 'package:stringlocale/compile.dart';
-```
-
-**2. Declare your strings** once, with a `Param` per `{placeholder}`:
+**3. Declare a string**
 
 ```dart
 // lib/strings.dart
 import 'package:stringlocale/stringlocale.dart';
-
-final greeting = StringLocale(
-  'Welcome back, {name}',
-  id: 'greeting',
-  params: {'name': Param.literal()},
-  gendered: true,
-);
 
 final inbox = StringLocale(
   'You have {count} messages',
@@ -59,53 +78,30 @@ final inbox = StringLocale(
   params: {'count': Param.plural()},
 );
 
-final fee = StringLocale(
-  '{creator} charges {amount} per post',
-  id: 'fee',
-  params: {
-    'creator': Param.literal(),
-    'amount': Param.currency('USD'),
-  },
-);
-
-final allStrings = [greeting, inbox, fee];
-
-int registerAll() => allStrings.length;
+// Force lazy top-level finals to initialize; return value is the string count.
+int registerAll() => [inbox].length;
 ```
 
-Dart top-level `final` values are lazy. Keep your declarations in a list and call a registration function before compiling or resolving so every `StringLocale` is constructed.
+**4. Compile to your target locales**
 
-**3. Set your translator key** if you want LLM-drafted translations through OpenRouter:
-
-```bash
-export OPENROUTER_API_KEY=sk-or-...
-```
-
-No key yet? Use `--drafter offline` to emit deterministic placeholder-style bundles and wire up the pipeline first.
-
-**4. Compile to your target locales**:
+Set your LLM API key, or use `--drafter offline` to skip the LLM and emit placeholder bundles. stringlocale works with any OpenAI-compatible `/chat/completions` endpoint (OpenRouter, OpenAI, Groq, Together, a local Ollama/LM Studio server, etc.):
 
 ```bash
+# Default endpoint is OpenRouter; point STRINGLOCALE_BASE_URL elsewhere for any
+# other OpenAI-compatible provider.
+export STRINGLOCALE_API_KEY=sk-...
+# export STRINGLOCALE_BASE_URL=https://api.openai.com/v1/chat/completions
+# export STRINGLOCALE_MODEL=gpt-4o-mini
+
 dart run stringlocale compile \
-  --locales en-US,es-ES,ne-NP,ar-SA \
+  --locales en-US,es-ES,fr-FR,ar-SA \
   --source-locale en-US \
-  --out public/i18n
+  --out assets/i18n
 ```
 
-This writes `public/i18n/manifest.json` plus one `bundle.<locale>.json` per locale, with every gender/plural/custom-axis variant filled in. Re-running only redrafts cells whose source text, locale, enum value, or OpenRouter model changed.
+This writes `assets/i18n/manifest.json` plus one `bundle.<locale>.json` per locale. Re-running only redrafts cells whose source text or locale changed.
 
-Choose a specific OpenRouter model:
-
-```bash
-dart run stringlocale compile \
-  --locales en-US,es-ES,ne-NP \
-  --source-locale en-US \
-  --drafter openrouter \
-  --model google/gemini-2.5-flash \
-  --out public/i18n
-```
-
-**5. Use the same string in any locale**:
+**5. Resolve at runtime**
 
 ```dart
 import 'package:stringlocale/stringlocale.dart';
@@ -113,30 +109,29 @@ import 'strings.dart';
 
 void main() {
   registerAll();
+  final bundle = Bundle.fromDir('assets/i18n', ioFileReader);
+  useBundle(bundle, locale: 'es-ES');
 
-  final bundle = Bundle.fromDir('public/i18n', ioFileReader);
-  useBundle(bundle, locale: 'ne-NP');
-
-  print(greeting.resolve(args: {'name': 'Anisha', 'gender': 'female'}));
   print(inbox.resolve(args: {'count': 5}));
+  // → "Tienes 5 mensajes."
 }
 ```
 
 In Flutter, wrap the app in `StringLocaleScope` and use `Tr` or `tr(context, ...)`. See [Resolving](#resolving).
 
-**6. Keep bundles in sync as code changes**:
+**6. Keep bundles in sync as code changes**
 
 ```bash
-dart run stringlocale check --out public/i18n
-dart run stringlocale prune --out public/i18n --dry-run
-dart run stringlocale prune --out public/i18n
+dart run stringlocale check --out assets/i18n          # CI gate — exits non-zero on drift
+dart run stringlocale prune --out assets/i18n --dry-run
+dart run stringlocale prune --out assets/i18n
 ```
-
-Use `check` as a CI gate: it exits non-zero when declarations and bundles drift.
 
 ## Declaring Strings
 
-Each string is one typed object: a stable `id`, the source text, and a `Param` per `{placeholder}` describing how that value renders. Placeholders are validated against params at construction time.
+Each `StringLocale` has a stable `id`, the source text, and a `Param` per `{placeholder}`. Placeholders are validated against params at construction time — mismatches throw at startup, not silently at runtime.
+
+Dart top-level `final` values are lazy, so nothing is constructed until first access. Keep all declarations in a list and call a registration function before compiling or resolving to force construction:
 
 ```dart
 // lib/strings.dart
@@ -171,11 +166,10 @@ final greeting = StringLocale(
 );
 
 final allStrings = [followers, inbox, fee, greeting];
-
 int registerAll() => allStrings.length;
 ```
 
-You do not write translation keys, per-locale JSON, plural tables, or formatting glue. The params carry enough structure for the compiler to draft the right cells and for the runtime to format values safely.
+You do not write translation keys, per-locale JSON, plural tables, or formatting glue. The params carry enough structure for the compiler to draft the right cells and for the runtime to format values correctly.
 
 ## CLI Reference: Compile, Check, Prune
 
@@ -189,7 +183,7 @@ dart run stringlocale compile \
   --register registerAll \
   --source-locale en-US \
   --locales ne-NP,nl-NL,ar-SA \
-  --out public/i18n
+  --out assets/i18n
 ```
 
 | Flag | Default | Meaning |
@@ -201,19 +195,20 @@ dart run stringlocale compile \
 | `--out <dir>` | `dist` | Output directory for split bundles |
 | `--combined <path>` | off | Emit one combined bundle file instead of split per-locale files |
 | `--source-locale <code>` | `en` | Locale of the source strings |
-| `--drafter <mode>` | `auto` | `auto`, `offline`, or `openrouter` |
-| `--model <id>` | `google/gemini-2.5-flash` | OpenRouter model id |
+| `--drafter <mode>` | `auto` | `auto`, `offline`, `llm`, or `openrouter` |
+| `--model <id>` | `google/gemini-2.5-flash` | LLM model id |
+| `--base-url <url>` | OpenRouter | OpenAI-compatible `/chat/completions` endpoint |
 | `--force` | off | Re-draft every cell even when incremental hashes match |
 | `--quiet` | off | Hide progress messages except final output |
 
-**Translator.** With `OPENROUTER_API_KEY` set, `--drafter auto` uses OpenRouter. Without a key, it uses `OfflineDrafter`, which emits deterministic placeholders such as `ne:You have {count} messages`. You can force either behavior with `--drafter openrouter` or `--drafter offline`.
+**Translator.** With `STRINGLOCALE_API_KEY` (or `OPENROUTER_API_KEY`) set, `--drafter auto` uses the configured LLM via `LlmDrafter`. Without a key, it uses `OfflineDrafter`, which emits deterministic placeholders such as `ne:You have {count} messages`. You can force either behavior with `--drafter llm` (or `--drafter openrouter`) or `--drafter offline`. Point at any OpenAI-compatible API with `--base-url` or `STRINGLOCALE_BASE_URL`.
 
 **Model tracking.** Generated bundles record the drafter and model that produced them:
 
 ```json
 {
   "translation": {
-    "drafter": "openrouter",
+    "drafter": "llm",
     "model": "google/gemini-2.5-flash"
   }
 }
@@ -224,7 +219,7 @@ The model is also part of each cell's incremental hash, so the same model reuses
 **Output.** Split output writes a manifest plus one file per locale:
 
 ```text
-public/i18n/
+assets/i18n/
   manifest.json
   bundle.ne-NP.json
   bundle.nl-NL.json
@@ -237,7 +232,7 @@ Combined output writes one file:
 dart run stringlocale compile \
   --locales en-US,ne-NP,nl-NL \
   --source-locale en-US \
-  --combined public/i18n/bundle.json
+  --combined assets/i18n/bundle.json
 ```
 
 During compilation the CLI prints the string count, target locales, drafter mode, model when supplied, and each locale as it starts.
@@ -250,7 +245,7 @@ Imports the current strings, reads the compiled bundle, and reports drift. It ex
 dart run stringlocale check \
   --input lib/strings.dart \
   --register registerAll \
-  --out public/i18n
+  --out assets/i18n
 ```
 
 It reports:
@@ -266,8 +261,8 @@ It reports:
 Removes orphaned entries, meaning ids in the bundle that no longer exist in code, without redrafting anything.
 
 ```bash
-dart run stringlocale prune --out public/i18n --dry-run
-dart run stringlocale prune --out public/i18n
+dart run stringlocale prune --out assets/i18n --dry-run
+dart run stringlocale prune --out assets/i18n
 ```
 
 Use `--dry-run` first to preview removals.
@@ -277,6 +272,8 @@ Use `--dry-run` first to preview removals.
 Load bundles once at startup, then resolve strings anywhere. No LLM or network call happens at resolve time. It is a pure lookup with numbers, dates, currency, relative values, enum labels, plural categories, and digit conversion handled offline.
 
 ### Flutter
+
+The Flutter widget this package provides is `Tr` — it is unrelated to Flutter's own `Text` widget and the `StringLocale` model class does not conflict with any Flutter type.
 
 Declare your compiled bundles as assets in your app's `pubspec.yaml`:
 
@@ -383,7 +380,7 @@ import 'strings.dart';
 void main() {
   registerAll();
 
-  final bundle = Bundle.fromDir('public/i18n', ioFileReader);
+  final bundle = Bundle.fromDir('assets/i18n', ioFileReader);
   useBundle(bundle, locale: 'ne-NP');
 
   final text = fee.resolve(args: {
@@ -421,7 +418,9 @@ Before a bundle is loaded, `.resolve()` falls back to the source string and loca
 | `Param.user()` | Free user text | Passed through untouched |
 | `Param.userAdapted(context: ...)` | Free prose needing custom adaptation | Calls your bundle adapter only when supplied |
 
-## userAdapted: What To Provide
+`Param.date` and `Param.currency` use `package:intl` with the Gregorian calendar. For non-Gregorian calendars, pre-format the value and pass it as `Param.literal()`.
+
+## Runtime Adaptation
 
 `userAdapted` is a runtime adaptation hook for user-provided prose. It is opt-in and only applies to params you explicitly mark.
 
@@ -441,13 +440,13 @@ final profileBio = StringLocale(
 );
 ```
 
-2. Load the bundle. If `OPENROUTER_API_KEY` is set, `userAdapted` uses OpenRouter by default on async runtime APIs (`resolveAsync`, `AsyncTr`, `trAsync`). You can still pass your own adapter to override it:
+2. Load the bundle. If `STRINGLOCALE_API_KEY` (or `OPENROUTER_API_KEY`) is set, `userAdapted` uses the configured LLM by default on async runtime APIs (`resolveAsync`, `AsyncTr`, `trAsync`). Point at any OpenAI-compatible endpoint with `STRINGLOCALE_BASE_URL`. You can still pass your own adapter to override it:
 
 ```dart
 import 'package:stringlocale/stringlocale.dart';
 
 final bundle = load(
-  'public/i18n',
+  'assets/i18n',
   locale: 'ne-NP',
   userAdaptedMode: UserAdaptedMode.realtime,
   adapter: (value, locale, context) {
@@ -465,21 +464,19 @@ final out = profileBio.resolve(args: {
 });
 ```
 
-How it works:
+Notes:
 
-- If no adapter is provided, `userAdapted` is passthrough.
-- If `OPENROUTER_API_KEY` is set and no adapter is provided, async `userAdapted` uses OpenRouter automatically.
-- If current locale shares the source language, adaptation is skipped.
-- Adapter inputs are `(value, locale, context)`.
-- `UserAdaptedMode.cached` keeps adapted results by `(value, locale, context)` to avoid repeated calls.
-- `UserAdaptedMode.realtime` asks the adapter every time the string resolves.
+- If the current locale shares the source language, adaptation is skipped automatically.
+- Adapter signature is `(String value, String locale, String? context)`.
+- `UserAdaptedMode.cached` memoizes results by `(value, locale, context)` to avoid repeated calls.
+- `UserAdaptedMode.realtime` calls the adapter on every resolve.
 
 Runnable examples:
 
 - Offline adapter demo: `dart run example/main.dart`
-- OpenRouter runtime adapter demo: `dart run example/user_adapted_openrouter.dart`
+- LLM runtime adapter demo: `dart run example/user_adapted_openrouter.dart`
 
-## Axes And Cell Economics
+## Axes and Variants
 
 Use `gendered: true` for a built-in `gender` axis:
 
@@ -513,26 +510,23 @@ Enum translations are additive by default. For example, `gender(2) + status(3) +
 
 ## Runtime Behavior
 
-The runtime is offline by default. It does not call an LLM, translation API, or remote service while your app runs; it only resolves already-compiled JSON.
+The runtime is offline by default. It does not call an LLM, translation API, or remote service while your app runs; it only resolves already-compiled JSON. A few behaviors worth knowing:
 
-Runtime behavior includes:
+- **Locale fallback** — `ne-NP` falls back to `ne`, then to the source locale. Custom chains are supported: `'nl-BE': ['nl-NL', 'fr-FR']`.
+- **Native digits** — Arabic, Devanagari, and other numeral systems are applied automatically where the locale expects them.
+- **`userAdapted` is opt-in** — without an adapter or an LLM API key, it is passthrough. It never fires unless you explicitly mark a param with `Param.userAdapted(...)`.
 
-- split bundle loading from `manifest.json`
-- combined bundle loading
-- locale fallback chains such as `ne-NP -> ne -> source`
-- custom fallback chains such as `pt-BR -> pt -> es`
-- plural category selection
-- enum substitution
-- inline cross-product template selection
-- native digit conversion for supported locales
-- date, currency, number, and relative formatting
-- optional `userAdapted` adapter calls
+LLM-drafted translations are plain JSON, so you can review, diff, and version them like any other build artifact before shipping.
 
-LLM-drafted translations are written to plain JSON, so you can review, diff, and version them like any other build artifact before shipping.
+## Running the Sample Apps
 
-## Examples
+Minimal console sample (no API key needed, runs in seconds):
 
-Console sample:
+```bash
+dart run example/lib/main.dart
+```
+
+Full console sample with all param types:
 
 ```bash
 dart run example/main.dart
@@ -565,6 +559,8 @@ dart run stringlocale --help
 
 ## Develop
 
+### Package
+
 ```bash
 dart format .
 flutter analyze
@@ -572,8 +568,7 @@ flutter test
 dart pub publish --dry-run
 ```
 
-
-For the example app:
+### Example app
 
 ```bash
 cd example
@@ -581,13 +576,6 @@ flutter analyze
 flutter test
 flutter build macos --debug
 ```
-
-## Notes
-
-- Dates use `package:intl` and Gregorian calendars. For custom calendars, pre-format and pass as `Param.literal()`.
-- The model class is `StringLocale`; Flutter's `Text` widget is unaffected. The Flutter widget provided by this package is `Tr`.
-- `userAdapted` is the only kind that can touch custom runtime adaptation logic, and only if you pass an adapter to `Bundle`.
-- Plural categories are generated from CLDR data during package maintenance, then resolved from committed Dart data at runtime.
 
 ## License
 

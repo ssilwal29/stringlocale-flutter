@@ -1,6 +1,6 @@
 name: stringlocale
 description: Declare strings with typed params, compile to offline locale bundles with an LLM, and resolve by locale at runtime. Axis-model i18n for Dart and Flutter.
-version: 0.3.0
+version: 0.4.0
 repository: https://github.com/ssilwal29/stringlocale-flutter
 homepage: https://github.com/ssilwal29/stringlocale-flutter
 topics:
